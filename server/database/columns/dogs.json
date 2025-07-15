@@ -1,0 +1,38 @@
+{
+  "name": "Dogs",
+  "snakecase": "dogs",
+  "managed_by": "sample",
+  "max_id": 7,
+  "columns": [
+    {
+      "name": "Id",
+      "snakecase": "id",
+      "unique": true
+    },
+    {
+      "name": "Username",
+      "snakecase": "username",
+      "unique": true
+    },
+    {
+      "name": "Name",
+      "snakecase": "name",
+      "unique": true
+    },
+    {
+      "name": "Dog type",
+      "snakecase": "dog_type",
+      "unique": false
+    },
+    {
+      "name": "Age",
+      "snakecase": "age",
+      "unique": false
+    },
+    {
+      "name": "Facts",
+      "snakecase": "facts",
+      "unique": false
+    }
+  ]
+}
