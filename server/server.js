@@ -154,6 +154,30 @@ POST_routes['/api/delete'] = function(data, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
+//  Add a new table.
+//    Param: /api/create-table?table=dogs
+//    Data:  An object like { name: '', snakecase: '', columns: [ {...}, {...} ] }
+POST_routes['/api/create-table'] = function(data, res) {
+  let table_name = data.snakecase;
+  delete data._params
+  let response = {};
+  try {
+    fs.writeFileSync(`${__dirname}/database/columns/${table_name}.json`, JSON.stringify(data, null, 2));
+    response.msg = `Created new table with the name "${table_name}"!`;
+    console.log(response.msg);
+  } catch (err) {
+    console.error('Error creating a new table file synchronously:', err);
+    response.error = true;
+    response.msg = err;
+  }
+  try {
+    fs.writeFileSync(`${__dirname}/database/rows/${table_name}.json`, '[]');
+  } catch (err) {
+    response.error = true;
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
 
 ////  SECTION 4: Boot.
 

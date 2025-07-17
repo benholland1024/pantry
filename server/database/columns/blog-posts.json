@@ -1,0 +1,35 @@
+{
+  "name": "Blog Posts",
+  "max_id": 1,
+  "columns": [
+    {
+      "name": "Id",
+      "snakecase": "id",
+      "unique": true,
+      "required": true,
+      "reference": false
+    },
+    {
+      "name": "Title",
+      "snakecase": "title",
+      "unique": "on",
+      "required": "on",
+      "reference": "on"
+    },
+    {
+      "name": "Byline",
+      "snakecase": "byline",
+      "unique": "on",
+      "required": "on",
+      "reference": "on"
+    },
+    {
+      "name": "Content",
+      "snakecase": "content",
+      "unique": "on",
+      "required": "on",
+      "reference": "on"
+    }
+  ],
+  "snakecase": "blog-posts"
+}
