@@ -116,7 +116,7 @@
       add_row_html += '<h3>New row</h3>';
       for (let i = 0; i < columns.length; i++) {
         if (columns[i].snakecase == 'id') { continue; }
-        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="${columns[i].snakecase}"></div>`;
+        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="i-${columns[i].snakecase}"></div>`;
       }
       add_row_html += `<div class="row-input"><button onclick="add_row()">Add row</button></div>`;
       add_row_html += `</div>`;
@@ -209,7 +209,7 @@
       add_row_html += '<h3>New row</h3>';
       for (let i = 0; i < column_data.length; i++) {
         const input_types = ['text', 'text', 'checkbox', 'checkbox', 'checkbox'];
-        add_row_html += `<div class="row-input">${column_data[i][0]}: <input type="${input_types[i]}" id="${column_data[i][1]}"></div>`;
+        add_row_html += `<div class="row-input">${column_data[i][0]}: <input type="${input_types[i]}" id="i-${column_data[i][1]}"></div>`;
       }
 
       add_row_html += `<div class="row-input"><button onclick="add_column()">Add column</button></div>`;
@@ -246,7 +246,7 @@
       let columns = table.columns.columns;
       let new_row = {};
       for (let i = 0; i < columns.length; i++) {
-        let input = document.getElementById(columns[i].snakecase);
+        let input = document.getElementById("i-" + columns[i].snakecase);
         if (input) {
           new_row[columns[i].snakecase] = input.value;
         }
@@ -259,6 +259,7 @@
           response = JSON.parse(http.responseText);
           if (!table.error) {
             console.log("Row submitted! ");
+            new_row.id = response.id;
             table.rows.push(new_row);
             render_table();
             render_add_row_btn();
@@ -274,7 +275,7 @@
       let columns = table.columns.columns;
       let row_update = {};
       for (let i = 0; i < columns.length; i++) {
-        let input = document.getElementById(columns[i].snakecase);
+        let input = document.getElementById("i-" + columns[i].snakecase);
         if (input) {
           row_update[columns[i].snakecase] = input.value;
         }
@@ -325,9 +326,11 @@
     function add_column() {
       let new_column = {};
       for (let i = 0; i < column_data.length; i++) {
-        let input = document.getElementById(column_data[i][1]);
-        if (input) {
+        let input = document.getElementById("i-" + column_data[i][1]);
+        if (input.type == 'text') {
           new_column[column_data[i][1]] = input.value;
+        } else if (input.type == 'checkbox') {
+          new_column[column_data[i][1]] = input.checked;
         }
       }
       table.columns.columns.push(new_column);
@@ -355,6 +358,7 @@
             // table.rows.push(new_row);
             // render_table();
             // render_add_row_btn();
+            render_side_bar();
           } else {
             document.getElementById('error').innerHTML = response.msg;
           }
