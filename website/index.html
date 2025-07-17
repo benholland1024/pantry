@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+
+  <body>
+    <!--  Side bar  -->
+    <div id="side-bar">
+      <h1>&#129387; The Data Pantry &#129387;</h1>
+      <h3>Your Tables:</h3>
+      <div id="table-list"><!-- Insert table names here --></div>
+    </div>
+
+    <!--  Main content (table display)  -->
+    <div id="content">
+      <div id="top-bar">
+        <h2 id="table-name-display"><!--  Insert current table name here --></h2>
+      </div>
+      <div id="error"></div>
+      <div id="table-display"><!-- Insert table and controls here  --></div>
+      <div id="row-editor-container"><!--  Insert row editor here  --></div>
+      <button id="new-row" onclick="render_add_row_btn()">+ New Row</button>
+    </div>
+
+  </body>
+  
+  <script>
+
+    //  GLOBAL DATA
+    let table = {};
+    let selected_row = {};
+
+    //  BOOT
+    const http = new XMLHttpRequest();
+    http.open("GET", "/api/all-tables");
+    http.send();
+    http.onreadystatechange = (e) => {
+      let response;      
+      if (http.readyState == 4 && http.status == 200) {
+        table_list = JSON.parse(http.responseText);
+        if (!table_list.error) {
+          console.log("Table list recieved! ");
+          console.log(table_list);
+          for (let i = 0; i < table_list.length; i++) {
+            document.getElementById('table-list').innerHTML += `<div class="table-name" onclick="load('${table_list[i]}')">${table_list[i]}</div>`;
+          }
+          if (table_list) { load(table_list[0]);  }  //  Load the first table on startup
+        } else {
+          document.getElementById('error').innerHTML = response.msg;
+        }
+      }
+    }
+
+    ////  RENDER
+    //  Render the table
+    function render_table() {
+      document.getElementById('table-name-display').innerHTML = `Table name: <b>${table.columns.name}</b>`;
+      let table_string = `<table><tr>`
+      //  Table header
+      let columns = table.columns.columns;
+      for (let i = 0; i < columns.length; i++) {
+        //if (columns[i].snakecase == 'id') { continue; }
+        table_string += `<th>${columns[i].snakecase}</th>`;
+      }
+      // table_string += `<th><!-- edit icon --></th>`;
+      table_string += `</tr>`;
+
+      //  Table rows
+      let rows = table.rows;
+      for (let i = 0; i < rows.length; i++) {
+        let selected_class = 'class="selected-row"';
+        if (selected_row.id != rows[i].id) {  selected_class = '';  }
+        table_string += `<tr onclick="render_row_editor(${i})" ${selected_class}>`;
+        for (let j = 0; j < columns.length; j++) {
+          //if (columns[j].snakecase == 'id') { continue; }
+          table_string += `<td>${rows[i][columns[j].snakecase]}</td>`;
+        }
+        // table_string += `<td>&#9999; &nbsp; &#128465;</td>`;
+        table_string += `</tr>`;
+      }
+      table_string += `</table><br/>`;
+      document.getElementById('table-display').innerHTML = table_string;
+    }
+
+    function render_add_row_btn() {
+      let columns = table.columns.columns;
+      let add_row_html = '<div id="row-editor">';
+      add_row_html += '<h3>New row</h3>';
+      for (let i = 0; i < columns.length; i++) {
+        if (columns[i].snakecase == 'id') { continue; }
+        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="${columns[i].snakecase}"></div>`;
+      }
+      add_row_html += `<div class="row-input"><button onclick="add_row()">Add row</button></div>`;
+      add_row_html += `</div>`;
+      document.getElementById('row-editor-container').innerHTML = add_row_html;
+      document.getElementById('new-row').style.display = 'none';
+    }
+
+    //  Fired when a row is selected!
+    function render_row_editor(i) {
+      let columns = table.columns.columns;
+      selected_row = table.rows[i];
+      render_table();  //  Needed to highlight row
+      let add_row_html = '<div id="row-editor">';
+      add_row_html += `<h3>Row ${i}</h3>`;
+      for (let i = 0; i < columns.length; i++) {
+        if (columns[i].snakecase == 'id') { continue; }
+        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="${columns[i].snakecase}" value="${selected_row[columns[i].snakecase]}"></div>`;
+      }
+      add_row_html += `<br/>`;
+      add_row_html += `<div class="row-input">`;
+      add_row_html += `<button onclick="update_row(${i})">Update row</button>`;
+      add_row_html += `<button onclick="delete_row(${i})" id="delete">&#128465; </button>`;
+      add_row_html += `</div>`;
+      
+      add_row_html += `</div>`;
+      document.getElementById('row-editor-container').innerHTML = add_row_html;
+      document.getElementById('new-row').style.display = 'block';
+
+    }
+
+
+    ////
+    ////  NETWORKING
+    ////
+    //  Load a table onto the display
+    function load(table_name) {
+      http.open("GET", "/api/table?name=" + table_name);
+      http.send();
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          table = JSON.parse(http.responseText);
+          if (!table.error) {
+            console.log("Table recieved! ");
+            render_table();
+            render_add_row_btn();
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+    //  Add a row to the current table
+    function add_row() {
+      let columns = table.columns.columns;
+      let new_row = {};
+      for (let i = 0; i < columns.length; i++) {
+        let input = document.getElementById(columns[i].snakecase);
+        if (input) {
+          new_row[columns[i].snakecase] = input.value;
+        }
+      }
+      http.open("POST", "/api/insert?table=" + table.columns.snakecase);  //  "table" is a global variable
+      http.send(JSON.stringify(new_row));
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          response = JSON.parse(http.responseText);
+          if (!table.error) {
+            console.log("Row submitted! ");
+            table.rows.push(new_row);
+            render_table();
+            render_add_row_btn();
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+    //  Update a row
+    function update_row(i) {
+      let columns = table.columns.columns;
+      let row_update = {};
+      for (let i = 0; i < columns.length; i++) {
+        let input = document.getElementById(columns[i].snakecase);
+        if (input) {
+          row_update[columns[i].snakecase] = input.value;
+        }
+      }
+      http.open("POST", `/api/update?table=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
+      http.send(JSON.stringify(row_update));
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          response = JSON.parse(http.responseText);
+          if (!table.error) {
+            console.log("Row updated! ");
+            table.rows[i] = row_update;
+            // table.rows.push(new_row);
+            render_table();
+            render_add_row_btn();
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+    //  delete a row
+    function delete_row(i) {
+      http.open("POST", `/api/delete?table=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
+      http.send();
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          response = JSON.parse(http.responseText);
+          if (!table.error) {
+            console.log("Row deleted! ");
+            table.rows.splice(i, 1);
+            // table.rows.push(new_row);
+            render_table();
+            render_add_row_btn();
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+  </script>
+
+  <style>
+    body {
+      color: white;
+      display: flex;
+      font-family: sans-serif;
+      padding: 0px;
+      margin: 0px;
+      --box-shadow: 2px 2px 10px black;
+
+      --content-bg: rgb(1, 1, 39);
+      --content-bg-dark2: hsl(from var(--content-bg) h s calc(l - 5));
+      --content-bg-dark1: hsl(from var(--content-bg) h s calc(l - 2));
+      --content-bg-light1: hsl(from var(--content-bg) h s calc(l + 5));
+      --content-bg-light2: hsl(from var(--content-bg) h s calc(l + 10));
+      --content-bg-light3: hsl(from var(--content-bg) h s calc(l + 15));
+
+      --action-bg: rgb(43, 3, 38);
+      --red-bg: rgb(63, 2, 10);
+    }
+
+    /*  Side bar styles */
+    #side-bar {
+      width: 300px;
+      min-height: 100vh;
+      background: var(--content-bg-dark1);
+      box-sizing: border-box;
+    }
+    #side-bar h1, #side-bar h3 {
+      padding: 10px;
+      opacity: 0.5;
+    }
+    #side-bar h1 {
+      font-size: 1.5em;
+    }
+    #side-bar h3 {
+      margin-bottom: 0px;
+    }
+    #side-bar div {
+      padding: 10px;
+    }
+    .table-name {
+      cursor: pointer;
+    }
+    .table-name:hover {
+      background: rgb(0, 0, 54);
+    }
+    
+    /*  Main content  */
+    #content {
+      text-align: center;
+      padding-top: 0px;
+      background: var(--content-bg);
+      min-height: 100vh;
+      flex-grow: 1;
+      position: relative;
+    }
+    #top-bar {
+      width: 100%;
+      position: relative;   
+      background: var(--content-bg-dark1);
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: left;
+    }
+    #table-name-display {
+      padding: 0px;
+      margin: 0px;
+      font-weight: normal;
+      font-size: 1em;
+    }
+    table {
+      margin: 30px auto;
+      width: 75%;
+
+      border-collapse: collapse;
+      box-shadow: var(--box-shadow);
+    }
+    tr:nth-child(even) {
+      background: var(--content-bg-light1);
+    }
+    tr:nth-child(odd) {
+      background: var(--content-bg-light2);
+    }
+    tr:nth-child(1) { /*  The header row  */
+      background: var(--content-bg-dark2);
+    }
+    tr:not(tr:nth-child(1)):hover {
+      cursor: pointer;
+      background: var(--content-bg-light3);
+    }
+    tr.selected-row {
+      background: var(--content-bg-light3);
+      font-weight: bold;
+    }
+    td, th {
+      /* border: 1px solid white; */
+      padding: 15px;
+    }
+
+    /*  Selected row / row editor */
+    #row-editor {
+      margin: auto;
+      width: 400px;
+      background: var(--content-bg-light1);
+      padding: 20px;
+      box-sizing: border-box;
+      box-shadow: var(--box-shadow);
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+    }
+    #row-editor h3 {
+      margin: 0px;
+      padding: 0px;
+      padding-bottom: 10px;
+    }
+    #row-editor .row-input {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0px;
+    }
+    #row-editor input {
+      background: var(--content-bg-light3);
+      color: white;
+      border: none;
+      padding: 4px;
+      font-size: 1em;
+    }
+    button {
+      background: var(--action-bg);
+      box-shadow: var(--box-shadow);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 1em;
+      cursor: pointer;
+
+    }
+    #row-editor #delete {
+      background: var(--red-bg);
+      cursor: pointer;
+    }
+
+    /* Button to create a new row.   */
+    #new-row {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: none;
+    }
+  </style>
+
+</html>

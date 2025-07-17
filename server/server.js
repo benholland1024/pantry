@@ -126,10 +126,31 @@ GET_routes['/api/table'] = function(data, res) {
 //    Param: /api/insert?table=dogs
 //    Data:  An object with row data. 
 POST_routes['/api/insert'] = function(data, res) {
-  let table = data._params.table;
-  data._params = undefined;
+  let table_name = data._params.table;
+  delete data._params;
   console.log(data);
-  let response = DataBase.table(table).insert(data);
+  let response = DataBase.table(table_name).insert(data);
+  api_response(res, 200, JSON.stringify(response));
+}
+
+//  Update a row in a table.  
+//    Param: /api/insert?table=dogs&id=26
+//    Data:  An object with row data. 
+POST_routes['/api/update'] = function(data, res) {
+  let table_name = data._params.table;
+  let row_id = data._params.id;
+  delete data._params;
+  let response = DataBase.table(table_name).update(row_id, data);
+  api_response(res, 200, JSON.stringify(response));
+}
+
+//  Delete a row from a table.  
+//    Param: /api/insert?table=dogs&id=26
+//    Data:  None
+POST_routes['/api/delete'] = function(data, res) {
+  let table_name = data._params.table;
+  let row_id = data._params.id;
+  let response = DataBase.table(table_name).delete(row_id);
   api_response(res, 200, JSON.stringify(response));
 }
 
@@ -147,5 +168,6 @@ server.on('close', () => {
 })
 process.on('SIGINT', function() {
   server.close();
+  process.exit()
 });
 server.listen(8080);

@@ -1,18 +1,18 @@
 [
   {
-    "username": "a",
-    "name": "b",
-    "dog_type": "c",
-    "age": "d",
-    "facts": "e",
+    "username": "linus",
+    "name": "Linus",
+    "dog_type": "Bischon",
+    "age": "9",
+    "facts": "Cutie",
     "id": 5
   },
   {
-    "username": "f",
-    "name": "g",
-    "dog_type": "h",
-    "age": "i",
-    "facts": "j",
+    "username": "georgie",
+    "name": "Georgie",
+    "dog_type": "Idk",
+    "age": "9",
+    "facts": "Cutie",
     "id": 6
   }
 ]
