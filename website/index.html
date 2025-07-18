@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html>
-  <head></head>
+  <head>
+    <script src="./pantry.js"></script>
+  </head>
 
   <body>
+    <!---------------->
     <!--  Side bar  -->
+    <!---------------->
     <div id="side-bar">
-      <h1>&#129387; The Data Pantry &#129387;</h1>
+      <h1>&#129387; The Data Pantry </h1>
       <h3>Your Tables:</h3>
       <div id="table-list"><!-- Insert table names here --></div>
     </div>
 
+    <!------------------------------------>
     <!--  Main content (table display)  -->
+    <!------------------------------------>
     <div id="page-content">
       <div id="top-bar">
         <h2 id="table-name-display"><!--  Insert current table name here --></h2>
@@ -39,28 +45,22 @@
       ['Required?', 'required'],
       ['Reference?', 'reference']
     ]
+    const http = new XMLHttpRequest(); // todo: remove this
 
     //  BOOT
     function boot() {
 
     }
-    const http = new XMLHttpRequest();
-    http.open("GET", "/api/all-tables");
-    http.send();
-    http.onreadystatechange = (e) => {
-      let response;      
-      if (http.readyState == 4 && http.status == 200) {
-        table_list = JSON.parse(http.responseText);
-        if (!table_list.error) {
-          console.log("Table list recieved! ");
-          console.log(table_list);
-          render_side_bar();
-          if (table_list) { load_table(table_list[0]);  }  //  Load the first table on startup
-        } else {
-          document.getElementById('error').innerHTML = response.msg;
-        }
+    Pantry.get_all_tables(function(table_list) {
+      if (!table_list.error) {
+        console.log("Table list recieved! ");
+        console.log(table_list);
+        render_side_bar();
+        if (table_list) { load_table(table_list[0]);  }  //  Load the first table on startup
+      } else {
+        document.getElementById('error').innerHTML = table_list.msg;
       }
-    }
+    });
 
     ////
     ////  RENDER side bar
@@ -180,9 +180,11 @@
       //  The following line grabs the current table name if it exists, to preserve it on rerender.
       let current_table_name = document.getElementById('table-name-input') ? document.getElementById('table-name-input').value : '';  
       //  Render the table name input:
-      let table_maker_html = `<div id="table-name-input-container">Table name: <input type="text" id="table-name-input" value="${current_table_name}"/></div>`;
+      let table_maker_html = `<div id="table-name-input-container">Table name: 
+        <input type="text" id="table-name-input" value="${current_table_name}" onkeydown="render_table_name_snakecase(event)"/></div>`;
+      table_maker_html += `<div id="table-snakecase-container">Table snakecase: </div><br/>`;
+
       //  Render the table:
-      table_maker_html += `<div>Table columns:</div>`;
       table_maker_html += `<table>`;
       table_maker_html += `<tr><th>Column name</th><th>Column snakecase</th><th>Unique?</th><th>Required?</th><th>Foreign key?</th></tr>`;
       ///  Rendering column data... as rows... don't get confused here. 
@@ -190,8 +192,8 @@
       console.log(rows);
       for (let i = 0; i < rows.length; i++) {
         let selected_class = 'class="selected-row"';
-        if (true) {  selected_class = '';  } // TODO: Allow selection of columns
-        table_maker_html += `<tr onclick="render_row_editor(${i})" ${selected_class}>`;
+        if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
+        table_maker_html += `<tr onclick="render_column_editor(${i})" ${selected_class}>`;
         for (let j = 0; j < column_data.length; j++) {
           table_maker_html += `<td>${rows[i][column_data[j][1]]}</td>`;
         }
@@ -200,6 +202,12 @@
       }
       table_maker_html += `</table><br/>`;
       document.getElementById('table-display').innerHTML = table_maker_html;
+    }
+
+    //  Render table name snake case whenever table name is updated
+    function render_table_name_snakecase(e) {
+      let table_name = document.getElementById('table-name-input').value + e.key;
+      document.getElementById('table-snakecase-container').innerHTML = `Table snakecase: ${table_name.toLowerCase().replace(' ', '-')}`;
     }
 
     //  Render the add column inputs
@@ -376,7 +384,10 @@
       margin: 0px;
       --box-shadow: 2px 2px 10px black;
 
-      --content-bg: rgb(1, 1, 39);
+      --content-bg: hsl(240, 55%, 8%);
+      --content-bg-desat: hsl(from var(--content-bg) h calc(s - 40) l);
+      --content-bg-desat-dark1: hsl(from var(--content-bg) h calc(s - 40) calc(l - 2));
+      --content-bg-desat-light1: hsl(from var(--content-bg) h calc(s - 40) calc(l + 5));
       --content-bg-dark2: hsl(from var(--content-bg) h s calc(l - 5));
       --content-bg-dark1: hsl(from var(--content-bg) h s calc(l - 2));
       --content-bg-light1: hsl(from var(--content-bg) h s calc(l + 5));
@@ -391,7 +402,7 @@
     #side-bar {
       width: 300px;
       min-height: 100vh;
-      background: var(--content-bg-dark1);
+      background: var(--content-bg-desat-dark1);
       box-sizing: border-box;
     }
     #side-bar h1, #side-bar h3 {
@@ -400,6 +411,9 @@
     }
     #side-bar h1 {
       font-size: 1.5em;
+      background: black; 
+      margin-top: 0px; 
+      padding: 15px;
     }
     #side-bar h3 {
       margin-bottom: 0px;
@@ -412,11 +426,11 @@
       cursor: pointer;
     }
     .table-name:hover, .save-new-table:hover {
-      background: rgb(0, 0, 54);
+      background: var(--content-bg-desat-light1);
       color: white;
     }
     .selected-table {
-      background: var(--content-bg-light1);
+      background: var(--content-bg-desat-light1);
       font-weight: bold;
     }
     .save-new-table {
@@ -427,7 +441,7 @@
     #page-content {
       text-align: center;
       padding-top: 0px;
-      background: var(--content-bg);
+      background: var(--content-bg-desat);
       min-height: 100vh;
       flex-grow: 1;
       position: relative;
@@ -435,7 +449,7 @@
     #top-bar {
       width: 100%;
       position: relative;   
-      background: var(--content-bg-dark1);
+      background: var(--content-bg-desat-dark1);
       padding: 20px;
       box-sizing: border-box;
       text-align: left;

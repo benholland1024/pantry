@@ -22,6 +22,10 @@ function server_request(req, res) {
   
   if (extname.length == 0 && url.split('/')[1] == 'api') {     /*  API routes.      */
     api_routes(url, req, res);
+  } else if (url == '/pantry.js') {
+    let response = fs.readFileSync(__dirname + '/../website/pantry.js');
+    res.write(response);
+    res.end();
   } else if (url == '/') {
     let response = fs.readFileSync(__dirname + '/../website/index.html');
     res.write(response);
