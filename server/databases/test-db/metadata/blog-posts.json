@@ -1,6 +1,6 @@
 {
   "name": "Blog Posts",
-  "max_id": 8,
+  "max_id": 10,
   "columns": [
     {
       "name": "Id",

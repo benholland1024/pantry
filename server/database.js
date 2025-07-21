@@ -27,9 +27,9 @@ class Table {
     this.name = name;
     this.db_name = db_name;
     try {
-      this.columns = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/columns/${name}.json`, 'utf8'));
+      this.metadata = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/metadata/${name}.json`, 'utf8'));
     } catch (err) {
-      throw new Error(`The file "\x1b[32m/databases/${db_name}/columns/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
+      throw new Error(`The file "\x1b[32m/databases/${db_name}/metadata/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
     }
     try {
       this.rows = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/rows/${name}.json`, 'utf8'));
@@ -44,8 +44,8 @@ class Table {
       error: false,
       msg: ''
     }
-    for (let i = 0; i < this.columns.columns.length; i++) {
-      let column_data = this.columns.columns[i];
+    for (let i = 0; i < this.metadata.columns.length; i++) {
+      let column_data = this.metadata.columns[i];
       if (column_data.unique === true && !(column_data.required === false && !row_data[column_data.snakecase])) {
         for (let j = 0; j < this.rows.length; j++) {
           if (j == index_to_skip) {
@@ -96,12 +96,12 @@ class Table {
     if (response.error) {
       return response;
     }
-    row_data.id = this.columns.max_id;
+    row_data.id = this.metadata.max_id;
     response.id = row_data.id;
-    this.columns.max_id++;
+    this.metadata.max_id++;
     this.rows.push(row_data);
     fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
-    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/columns/${this.name}.json`, JSON.stringify(this.columns, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/metadata/${this.name}.json`, JSON.stringify(this.metadata, null, 2));
     return response;
   }
 

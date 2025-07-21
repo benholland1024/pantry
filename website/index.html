@@ -30,10 +30,16 @@
       <div id="row-editor-container"><!--  Insert row editor here  --></div>
       <div id="action-button-container"><!--  Insert button here, like "New Row" etc  --></div>
 
+      <!--  Schema display stuff  -->
+      <div id="schema-display"><!--  Insert schema diagram here  --></div>
+
     </div>
 
   </body>
   
+  <script src="./table_maker.js"></script>
+  <script src="./table_display.js"></script>
+
   <script>
 
     //  GLOBAL DATA
@@ -42,14 +48,10 @@
     let table_list = [];   //  List of table NAMES belonging to the selected DB. 
     let table = {};        //  Current selected table obj
     let selected_row = {}; 
-    const column_data = [  //  All the properties used to define a table column
-      ['Column name', 'name'],
-      ['Column snakecase', 'snakecase'],
-      ['Unique?', 'unique'],
-      ['Required?', 'required'],
-      ['Reference?', 'reference']
-    ]
-    const http = new XMLHttpRequest(); // todo: remove this
+    const http = new XMLHttpRequest(); // todo: remove this?
+
+    let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
+
 
     //  BOOT
     function boot() {
@@ -68,6 +70,14 @@
       render_login_buttons();
     }
     boot();
+
+
+    function boot_db_maker() {
+      document.getElementById('table-display').innerHTML = "";
+      document.getElementById('row-editor-container').innerHTML = "";
+      document.getElementById('action-button-container').innerHTML = "";
+
+    }
     
 
     ////
@@ -81,6 +91,12 @@
     }
 
     function render_login_input() {
+      if (open_auth_box == 'login') { 
+        render_login_buttons();  
+        open_auth_box = 'none';
+        return;  
+      }
+      open_auth_box = 'login';
       let auth_input_html = '<div id="auth-input-box"><h3>Log in: </h3>';
       auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
@@ -92,6 +108,12 @@
     }
 
     function render_register_input() {
+      if (open_auth_box == 'register') { 
+        render_login_buttons();  
+        open_auth_box = 'none';
+        return;  
+      }
+      open_auth_box = 'register';
       let auth_input_html = '<div id="auth-input-box"><h3>Register: </h3>';
       auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
@@ -113,189 +135,26 @@
         if (selected_db != db_list[i]) {  selected_class = ''; }
         document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${db_list[i]}')">${db_list[i]}</div>`;
         //  Render list of DB tables, if the DB is selected:
-        // if (table.columns && table.columns.snakecase != db_list[i]) {  selected_class = ''; }
         if (selected_db == db_list[i]) {
           for (let j = 0; j < table_list.length; j++) {
             selected_class = '';
-            if (table.columns && table_list[j] == table.columns.snakecase) {  selected_class = 'selected';  }
+            if (table.metadata && table_list[j] == table.metadata.snakecase) {  selected_class = 'selected';  }
             document.getElementById('db-list').innerHTML += `<div class="table-name ${selected_class}" onclick="load_table('${table_list[j]}')">${table_list[j]}</div>`;
           }
+          document.getElementById('db-list').innerHTML += `<div class="create-new-table" onclick="boot_table_maker()">+ Create a table</div>`;
         }
       }
-      document.getElementById('db-list').innerHTML += `<div class="save-new-table" onclick="boot_table_maker()">+ Create a table</div>`;
+      document.getElementById('db-list').innerHTML += `<div class="create-new-database" onclick="boot_db_maker()">+ Create a database</div>`;
     }
+
+   
+    
 
     ////
-    ////  RENDER TABLE ROW EDITOR
-    ////
-    //  Render the table
-    function render_table() {
-      document.getElementById('table-name-display').innerHTML = `Table name: <b>${table.columns.name}</b>`;
-      let table_string = `<table><tr>`
-      //  Table header
-      let columns = table.columns.columns;
-      for (let i = 0; i < columns.length; i++) {
-        //if (columns[i].snakecase == 'id') { continue; }
-        table_string += `<th>${columns[i].snakecase}</th>`;
-      }
-      // table_string += `<th><!-- edit icon --></th>`;
-      table_string += `</tr>`;
-
-      //  Table rows
-      let rows = table.rows;
-      for (let i = 0; i < rows.length; i++) {
-        let selected_class = 'class="selected-row"';
-        if (selected_row.id != rows[i].id) {  selected_class = '';  }
-        table_string += `<tr onclick="render_row_editor(${i})" ${selected_class}>`;
-        for (let j = 0; j < columns.length; j++) {
-          //if (columns[j].snakecase == 'id') { continue; }
-          table_string += `<td>${rows[i][columns[j].snakecase]}</td>`;
-        }
-        // table_string += `<td>&#9999; &nbsp; &#128465;</td>`;
-        table_string += `</tr>`;
-      }
-      table_string += `</table><br/>`;
-      if (rows.length < 1) {  table_string += `<p><i>No rows in this table yet! </i></p>`;  }
-      document.getElementById('table-display').innerHTML = table_string;
-    }
-
-    function render_add_row_btn() {
-      let columns = table.columns.columns;
-      let add_row_html = '<div id="row-editor">';
-      add_row_html += '<h3>New row</h3>';
-      for (let i = 0; i < columns.length; i++) {
-        if (columns[i].snakecase == 'id') { continue; }
-        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="i-${columns[i].snakecase}"></div>`;
-      }
-      add_row_html += `<div class="row-input"><button onclick="add_row()">Add row</button></div>`;
-      add_row_html += `</div>`;
-      document.getElementById('row-editor-container').innerHTML = add_row_html;
-      document.getElementById('action-button-container').innerHTML = '';
-    }
-
-    //  Fired when a row is selected!
-    function render_row_editor(i) {
-      let columns = table.columns.columns;
-      selected_row = table.rows[i];
-      render_table();  //  Needed to highlight row
-      let add_row_html = '<div id="row-editor">';
-      add_row_html += `<h3>Row ${i}</h3>`;
-      for (let i = 0; i < columns.length; i++) {
-        if (columns[i].snakecase == 'id') { continue; }
-        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="i-${columns[i].snakecase}" value="${selected_row[columns[i].snakecase]}"></div>`;
-      }
-      add_row_html += `<br/>`;
-      add_row_html += `<div class="row-input">`;
-      add_row_html += `<button onclick="update_row(${i})">Update row</button>`;
-      add_row_html += `<button onclick="delete_row(${i})" id="delete">&#128465; </button>`;
-      add_row_html += `</div>`;
-      
-      add_row_html += `</div>`;
-      document.getElementById('row-editor-container').innerHTML = add_row_html;
-      document.getElementById('action-button-container').innerHTML = '<button id="new-row" onclick="render_add_row_btn()">+ New Row</button>';
-
-    }
-
-    ////
-    ////  RENDER TABLE MAKER / EDITOR 
+    ////  DATA HANDLING - databases
     ////
 
-    //  Start the table_maker interface.
-    function boot_table_maker() {
-      //  Reset the global "table" variable, with empty meta data
-      table = {
-        columns: {
-          name: '',
-          max_id: 0,
-          columns: [{
-              "name": "Id",
-              "snakecase": "id",
-              "unique": true,
-              "required": true,
-              "reference": false
-            },
-          ]
-        }
-      }
-      render_table_maker(); //  Render the table. 
-      render_add_column();  //  Render the "new column" layout
-      render_side_bar();
-    }
-    //  Go to the add table page
-    function render_table_maker() {
-      // The top bar
-      document.getElementById('table-name-display').innerHTML = `Create a Table`;
-
-      //  The following line grabs the current table name if it exists, to preserve it on rerender.
-      let current_table_name = document.getElementById('table-name-input') ? document.getElementById('table-name-input').value : '';  
-      //  Render the table name input:
-      let table_maker_html = `<div id="table-name-input-container">Table name: 
-        <input type="text" id="table-name-input" value="${current_table_name}" onkeydown="render_table_name_snakecase(event)"/></div>`;
-      table_maker_html += `<div id="table-snakecase-container">Table snakecase: </div><br/>`;
-
-      //  Render the table:
-      table_maker_html += `<table>`;
-      table_maker_html += `<tr><th>Column name</th><th>Column snakecase</th><th>Unique?</th><th>Required?</th><th>Foreign key?</th></tr>`;
-      ///  Rendering column data... as rows... don't get confused here. 
-      let rows = table.columns.columns;
-      for (let i = 0; i < rows.length; i++) {
-        let selected_class = 'class="selected-row"';
-        if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
-        table_maker_html += `<tr onclick="render_column_editor(${i})" ${selected_class}>`;
-        for (let j = 0; j < column_data.length; j++) {
-          table_maker_html += `<td>${rows[i][column_data[j][1]]}</td>`;
-        }
-        // table_string += `<td>&#9999; &nbsp; &#128465;</td>`;
-        table_maker_html += `</tr>`;
-      }
-      table_maker_html += `</table><br/>`;
-      document.getElementById('table-display').innerHTML = table_maker_html;
-    }
-
-    //  Render table name snake case whenever table name is updated
-    function render_table_name_snakecase(e) {
-      let table_name = document.getElementById('table-name-input').value + e.key;
-      document.getElementById('table-snakecase-container').innerHTML = `Table snakecase: ${table_name.toLowerCase().replace(' ', '-')}`;
-    }
-
-    //  Render the add column inputs
-    function render_add_column() {
-      let columns = table.columns.columns;
-      let add_row_html = '<div id="row-editor">';
-      add_row_html += '<h3>New row</h3>';
-      for (let i = 0; i < column_data.length; i++) {
-        const input_types = ['text', 'text', 'checkbox', 'checkbox', 'checkbox'];
-        add_row_html += `<div class="row-input">${column_data[i][0]}: <input type="${input_types[i]}" id="i-${column_data[i][1]}"></div>`;
-      }
-
-      add_row_html += `<div class="row-input"><button onclick="add_column()">Add column</button></div>`;
-      add_row_html += `</div>`;
-      document.getElementById('row-editor-container').innerHTML = add_row_html;
-      document.getElementById('action-button-container').innerHTML = '<button id="save-new-table" onclick="save_new_table()">+ Save New Table</button>';
-    }
-
-    ////
-    ////  DATA HANDLING - table rows
-    ////
-    //  Load a table onto the display
-    function load_table(table_name) {
-      http.open("GET", `/api/table?db_name=${selected_db}&table_name=${table_name}`);
-      http.send();
-      http.onreadystatechange = (e) => {
-        let response;      
-        if (http.readyState == 4 && http.status == 200) {
-          table = JSON.parse(http.responseText);
-          if (!table.error) {
-            render_table();
-            render_add_row_btn();
-            render_side_bar();
-          } else {
-            document.getElementById('error').innerHTML = response.msg;
-          }
-        }
-      }
-    }
-
+    //  Load a list of all tables in a database
     function load_database(db_name) {
       selected_db = db_name;
       Pantry.get_all_tables(db_name, function(_table_list) {
@@ -309,123 +168,9 @@
       });
     }
 
-    //  Add a row to the current table
-    function add_row() {
-      let columns = table.columns.columns;
-      let new_row = {};
-      for (let i = 0; i < columns.length; i++) {
-        let input = document.getElementById("i-" + columns[i].snakecase);
-        if (input) {
-          new_row[columns[i].snakecase] = input.value;
-        }
-      }
-      http.open("POST", `/api/insert?db_name=${selected_db}&table_name=${table.columns.snakecase}`);  //  "table" is a global variable
-      http.send(JSON.stringify(new_row));
-      http.onreadystatechange = (e) => {
-        let response;      
-        if (http.readyState == 4 && http.status == 200) {
-          response = JSON.parse(http.responseText);
-          if (!table.error) {
-            new_row.id = response.id;
-            table.rows.push(new_row);
-            render_table();
-            render_add_row_btn();
-          } else {
-            document.getElementById('error').innerHTML = response.msg;
-          }
-        }
-      }
-    }
+    //  Render a database diagram 
+    function render_db_diagram() {
 
-    //  Update a row
-    function update_row(row_num) {
-      let columns = table.columns.columns;
-      let row_update = {};
-      for (let i = 0; i < columns.length; i++) {
-        let input = document.getElementById("i-" + columns[i].snakecase);
-        if (input) {
-          row_update[columns[i].snakecase] = input.value;
-        }
-      }
-      http.open("POST", `/api/update?db_name=${selected_db}&table_name=${table.columns.snakecase}&id=${table.rows[row_num].id}`);  //  "table" is a global variable
-      http.send(JSON.stringify(row_update));
-      http.onreadystatechange = (e) => {
-        let response;      
-        if (http.readyState == 4 && http.status == 200) {
-          response = JSON.parse(http.responseText);
-          if (!table.error) {
-            //  Update the "buffer" data:
-            for (let j = 0; j < Object.keys(row_update).length; j++) {
-              let key = Object.keys(row_update)[j];
-              table.rows[row_num][key] = row_update[key];
-            }
-            // table.rows.push(new_row);
-            render_table();
-            render_add_row_btn();
-          } else {
-            document.getElementById('error').innerHTML = response.msg;
-          }
-        }
-      }
-    }
-
-    //  delete a row
-    function delete_row(i) {
-      http.open("POST", `/api/delete?db_name=${selected_db}&table_name=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
-      http.send();
-      http.onreadystatechange = (e) => {
-        let response;      
-        if (http.readyState == 4 && http.status == 200) {
-          response = JSON.parse(http.responseText);
-          if (!table.error) {
-            table.rows.splice(i, 1);
-            // table.rows.push(new_row);
-            render_table();
-            render_add_row_btn();
-          } else {
-            document.getElementById('error').innerHTML = response.msg;
-          }
-        }
-      }
-    }
-
-    ////
-    ////  DATA HANDLING - table def and columns
-    ////
-    function add_column() {
-      let new_column = {};
-      for (let i = 0; i < column_data.length; i++) {
-        let input = document.getElementById("i-" + column_data[i][1]);
-        if (input.type == 'text') {
-          new_column[column_data[i][1]] = input.value;
-        } else if (input.type == 'checkbox') {
-          new_column[column_data[i][1]] = input.checked;
-        }
-      }
-      table.columns.columns.push(new_column);
-      render_table_maker();
-    }
-
-    //  Create new table .json file in Pantry
-    function save_new_table() {
-      let new_table = table.columns;
-
-      new_table.name = document.getElementById('table-name-input').value;
-      new_table.snakecase = new_table.name.toLowerCase().replace(' ', '-');
-      http.open("POST", `/api/create-table?db_name=${selected_db}`);
-      http.send(JSON.stringify(new_table));
-      http.onreadystatechange = (e) => {
-        let response;      
-        if (http.readyState == 4 && http.status == 200) {
-          response = JSON.parse(http.responseText);
-          if (!table.error) {
-            table_list.push(new_table.snakecase);
-            render_side_bar();
-          } else {
-            document.getElementById('error').innerHTML = response.msg;
-          }
-        }
-      }
     }
   </script>
 
@@ -443,6 +188,7 @@
       --content-bg-desat-dark1: hsl(from var(--content-bg) h calc(s - 40) calc(l - 2));
       --content-bg-desat-light1: hsl(from var(--content-bg) h calc(s - 40) calc(l + 5));
       --content-bg-desat-light2: hsl(from var(--content-bg) h calc(s - 40) calc(l + 10));
+      --content-bg-desat-light3: hsl(from var(--content-bg) h calc(s - 40) calc(l + 15));
       --content-bg-dark2: hsl(from var(--content-bg) h s calc(l - 5));
       --content-bg-dark1: hsl(from var(--content-bg) h s calc(l - 2));
       --content-bg-light1: hsl(from var(--content-bg) h s calc(l + 5));
@@ -486,11 +232,11 @@
     .db-name.selected::before {
       content: '\25BE  ';
     }
-    .table-name, .save-new-table, .db-name {
+    .table-name, .create-new-table, .db-name, .create-new-database {
       cursor: pointer;
       opacity: 0.5;
     }
-    .table-name {
+    .table-name, .create-new-table {  /*  These are indented */
       padding-left: 35px !important;
       background:var(--content-bg-desat-light1);
       font-size: 0.8em;
@@ -503,14 +249,12 @@
     .db-name.selected {
       background: var(--content-bg-desat);
     }
-    .table-name:hover, .save-new-table:hover, .db-name:hover {
+    .table-name:hover, .create-new-table:hover, .db-name:hover, .create-new-database:hover {
       background: var(--content-bg-desat-light2);
       color: white;
       opacity: 1;
     }
-    .save-new-table {
-      color: rgba(255,255,255,0.5);
-    }
+
     
     /*  Main content  */
     #page-content {
@@ -642,8 +386,14 @@
     /*        Table editor           */
     /*********************************/
     #table-name-input-container {
-      margin: 20px;
-
+      /*  */
+    }
+    #table-name-input {
+      background: var(--content-bg-desat-light3);
+    }
+    #table-snakecase-container {
+      margin-top: 5px;
+      opacity: 0.5;
     }
 
   </style>

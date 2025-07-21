@@ -28,5 +28,11 @@
     "byline": "Written by Josie",
     "content": "meow meow meow",
     "id": 5
+  },
+  {
+    "title": "Blog post 6",
+    "byline": "By James k Poke",
+    "content": ".....",
+    "id": 8
   }
 ]

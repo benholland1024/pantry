@@ -55,8 +55,10 @@ function server_request(req, res) {
     let response = fs.readFileSync(__dirname + '/../website/index.html');
     res.write(response);
     res.end();
-  } else {
+  } else if (url.includes('server')) {  /*  Don't send anything from the /server/ folder.  */
     respond_with_a_page(res, '/404');
+  } else {    /*  Extension, like .png, .css, .js, etc? If found, respond with the asset.  */
+    respond_with_asset(res, url, extname);
   }
 
 }
@@ -85,8 +87,9 @@ function respond_with_a_page(res, url) {
 }
 
 function respond_with_asset(res, url, extname) {
-  fs.readFile( __dirname + '/..' + url, function(error, content) {
+  fs.readFile( __dirname + '/../website' + url, function(error, content) {
     if (error) {
+      console.log(error);
       if(error.code == 'ENOENT') {
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('404 -- asset not found', 'utf-8');
@@ -186,10 +189,10 @@ GET_routes['/api/all-databases'] = function(data, res) {
 }
 
 //  Get all tables from a database. 
-//    Param: /api/all-tables?database=dogs
-GET_routes['/api/all-tables'] = function(data, res) {
+//    Param: /api/all-table-names?database=dogs
+GET_routes['/api/all-table-names'] = function(data, res) {
   let database_name = data.database;
-  let table_names = fs.readdirSync(`${__dirname}/databases/${database_name}/columns`);
+  let table_names = fs.readdirSync(`${__dirname}/databases/${database_name}/metadata`);
   for (let i = 0; i < table_names.length; i++) {
     table_names[i] = path.parse(table_names[i]).name;
   }
@@ -255,7 +258,7 @@ POST_routes['/api/create-table'] = function(data, res) {
   delete data._params
   let response = {};
   try {
-    fs.writeFileSync(`${__dirname}/databases/${db_name}/columns/${table_name}.json`, JSON.stringify(data, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
     response.msg = `Created new table with the name "${table_name}"!`;
     console.log(response.msg);
   } catch (err) {

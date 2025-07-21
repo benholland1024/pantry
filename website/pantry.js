@@ -4,7 +4,7 @@
 const Pantry = {
   async get_all_tables(db_name, callback) {
     const http = new XMLHttpRequest();
-    http.open("GET", "/api/all-tables?database=" + db_name);
+    http.open("GET", "/api/all-table-names?database=" + db_name);
     http.send();
     http.onreadystatechange = (e) => {
       if (http.readyState == 4 && http.status == 200) {
