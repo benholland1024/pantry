@@ -3,19 +3,38 @@
 var path = require('path');
 var fs   = require('fs');
 
-class Table {
-
+//  Database class!  
+//    Get a table with this syntax:
+//      let user_table = Database('pantry-housekeeping').Table('users');
+class Database {
   constructor(name) {
     this.name = name;
-    try {
-      this.columns = JSON.parse(fs.readFileSync(`${__dirname}/columns/${name}.json`, 'utf8'));
+    try  {
+      this.table_names = fs.readdirSync(`${__dirname}/databases/${this.name}`);
     } catch (err) {
-      throw new Error(`The file "\x1b[32m/columns/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
+      throw new Error(`There is no database folder with the name ${__dirname}/databases/${this.name}`)
+    }
+  }
+
+  Table(table_name) {
+    return new Table(this.name, table_name);
+  }
+}
+
+class Table {
+
+  constructor(db_name, name) {
+    this.name = name;
+    this.db_name = db_name;
+    try {
+      this.columns = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/columns/${name}.json`, 'utf8'));
+    } catch (err) {
+      throw new Error(`The file "\x1b[32m/databases/${db_name}/columns/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
     }
     try {
-      this.rows = JSON.parse(fs.readFileSync(`${__dirname}/rows/${name}.json`, 'utf8'));
+      this.rows = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/rows/${name}.json`, 'utf8'));
     } catch (err) {
-      throw new Error(`The file "\x1b[32m/rows/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
+      throw new Error(`The file "\x1b[32m/databases/${db_name}/rows/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
     }
   }
 
@@ -81,8 +100,8 @@ class Table {
     response.id = row_data.id;
     this.columns.max_id++;
     this.rows.push(row_data);
-    fs.writeFileSync(`${__dirname}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
-    fs.writeFileSync(`${__dirname}/columns/${this.name}.json`, JSON.stringify(this.columns, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/columns/${this.name}.json`, JSON.stringify(this.columns, null, 2));
     return response;
   }
 
@@ -112,7 +131,7 @@ class Table {
       return response;
     } else {  //  Save it!
       this.rows[index_to_update] = updated_row_copy;
-      fs.writeFileSync(`${__dirname}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+      fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
       response.id = this.rows[index_to_update].id;
     }
     
@@ -123,7 +142,7 @@ class Table {
     for (let i = 0; i < this.rows.length; i++) {
       if (this.rows[i].id == id_to_delete) {
         this.rows.splice(i, 1);
-        fs.writeFileSync(`${__dirname}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+        fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
         return `Deleted the row with id ${id_to_delete}`;
       }
     }
@@ -132,8 +151,4 @@ class Table {
   
 }
 
-module.exports = {
-  table: function(table_name) {
-    return new Table(table_name);
-  },
-}
+module.exports = Database; // See above for usage! Basically: let my_table = Database('my-db').Table('my-table');

@@ -6,11 +6,36 @@ console.log('Starting the Pantry server! 🥫');
 var http = require('http');  // listen to HTTP requests
 var path = require('path');  // manage filepath names
 var fs   = require('fs');    // access files on the server
-var DataBase = require('./database/database.js');
+var DataBase = require('./database.js');
 
 
 
 ////  SECTION 2: Request response.
+
+//  This dictionary of media types (MIME types) will be used in the server func.
+const mimeTypes = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.woff': 'application/font-woff',
+  '.ttf': 'application/font-ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.otf': 'application/font-otf',
+  '.wasm': 'application/wasm'
+};
+
+//  Mapping URLs to pages
+const pageURLs = {
+  '/': '/website/table_display.html',
+}
+const pageURLkeys = Object.keys(pageURLs);
 
 //  This function will fire upon every request to our server.
 function server_request(req, res) {
@@ -30,12 +55,54 @@ function server_request(req, res) {
     let response = fs.readFileSync(__dirname + '/../website/index.html');
     res.write(response);
     res.end();
+  } else {
+    respond_with_a_page(res, '/404');
   }
 
 }
 
+//  For urls that result in an html page being sent
+function respond_with_a_page(res, url) {
+  let page_content = "";
 
-////  SECTION 3: API.
+  if (pageURLkeys.includes(url)) {  //  If it's a static page route....
+    url = pageURLs[url];
+    try {
+      page_content = fs.readFileSync( __dirname + '/../website' + url);
+    } catch(err) {
+      page_content = fs.readFileSync(__dirname + '/../website/404.html');
+    }
+  } else {                          //  If it's a dynamic page route....
+    page_content = fs.readFileSync(__dirname + '/../website/404.html');
+  }
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  // var main_page = fs.readFileSync(__dirname + '/../pages/index.html', {encoding:'utf8'});
+  // var page_halves = main_page.split('<!--  Insert page content here!  -->');
+  // var rendered = page_halves[0] + page_content + page_halves[1];
+  // res.write(rendered);
+  res.write(page_content);
+  res.end();
+}
+
+function respond_with_asset(res, url, extname) {
+  fs.readFile( __dirname + '/..' + url, function(error, content) {
+    if (error) {
+      if(error.code == 'ENOENT') {
+        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.end('404 -- asset not found', 'utf-8');
+      }
+      else {
+        res.writeHead(500);
+        res.end(`Sorry, check with the site admin for error: ${error.code} ..\n`);
+      }
+    } else {
+      var contentType = mimeTypes[extname] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    }
+  });
+}
+
 ////  SECTION 3: API.
 
 let GET_routes = {};  //  Stores all GET route methods!
@@ -108,17 +175,33 @@ function api_routes(url, req, res) {
   })
 }
 
+//  Get a list of the names of all databases. 
+//    TODO:  Make this search databases by user. 
+GET_routes['/api/all-databases'] = function(data, res) {
+  let db_names = fs.readdirSync(`${__dirname}/databases`);
+  for (let i = 0; i < db_names.length; i++) {
+    db_names[i] = path.parse(db_names[i]).name;
+  }
+  api_response(res, 200, JSON.stringify(db_names));
+}
+
+//  Get all tables from a database. 
+//    Param: /api/all-tables?database=dogs
 GET_routes['/api/all-tables'] = function(data, res) {
-  let table_names = fs.readdirSync(`${__dirname}/database/columns`);
+  let database_name = data.database;
+  let table_names = fs.readdirSync(`${__dirname}/databases/${database_name}/columns`);
   for (let i = 0; i < table_names.length; i++) {
     table_names[i] = path.parse(table_names[i]).name;
   }
   api_response(res, 200, JSON.stringify(table_names));
 }
 
+//  Get one or more tables from a given database. 
+//    Params: /api/table?db_name=my-db&table_name=my-table
 GET_routes['/api/table'] = function(data, res) {
-  let table_name = data.name;
-  let response = DataBase.table(table_name);
+  let db_name = data.db_name;
+  let table_name = data.table_name;
+  let response = new DataBase(db_name).Table(table_name);
   if (typeof response != 'object') {
     api_response(res, 400, `Table doesn't exist`);
     return;
@@ -127,46 +210,52 @@ GET_routes['/api/table'] = function(data, res) {
 }
 
 //  Insert a row into a table.  
-//    Param: /api/insert?table=dogs
+//    Param: /api/insert?db_name=my-db&table_name=my-table
 //    Data:  An object with row data. 
 POST_routes['/api/insert'] = function(data, res) {
-  let table_name = data._params.table;
+  let db_name = data._params.db_name;
+  let table_name = data._params.table_name;
   delete data._params;
   console.log(data);
-  let response = DataBase.table(table_name).insert(data);
+  let response = new DataBase(db_name).Table(table_name).insert(data);
   api_response(res, 200, JSON.stringify(response));
 }
 
 //  Update a row in a table.  
-//    Param: /api/insert?table=dogs&id=26
+//    Param: /api/insert?db_name=my-db&table_name=my-table&id=26
 //    Data:  An object with row data. 
 POST_routes['/api/update'] = function(data, res) {
-  let table_name = data._params.table;
+  let db_name = data._params.db_name;
+  let table_name = data._params.table_name;
   let row_id = data._params.id;
   delete data._params;
-  let response = DataBase.table(table_name).update(row_id, data);
+  console.log("Updating:");
+  console.log(data);
+  let response = new DataBase(db_name).Table(table_name).update(row_id, data);
   api_response(res, 200, JSON.stringify(response));
 }
 
 //  Delete a row from a table.  
-//    Param: /api/insert?table=dogs&id=26
+//    Param: /api/insert?db_name=my-db&table_name=my-table&id=26
 //    Data:  None
 POST_routes['/api/delete'] = function(data, res) {
-  let table_name = data._params.table;
+  let db_name = data._params.db_name;
+  let table_name = data._params.table_name;
   let row_id = data._params.id;
-  let response = DataBase.table(table_name).delete(row_id);
+  let response = new DataBase(db_name).Table(table_name).delete(row_id);
   api_response(res, 200, JSON.stringify(response));
 }
 
 //  Add a new table.
-//    Param: /api/create-table?table=dogs
+//    Param: /api/create-table?db_name=my-db
 //    Data:  An object like { name: '', snakecase: '', columns: [ {...}, {...} ] }
 POST_routes['/api/create-table'] = function(data, res) {
+  let db_name = data._params.db_name;
   let table_name = data.snakecase;
   delete data._params
   let response = {};
   try {
-    fs.writeFileSync(`${__dirname}/database/columns/${table_name}.json`, JSON.stringify(data, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${db_name}/columns/${table_name}.json`, JSON.stringify(data, null, 2));
     response.msg = `Created new table with the name "${table_name}"!`;
     console.log(response.msg);
   } catch (err) {
@@ -175,7 +264,7 @@ POST_routes['/api/create-table'] = function(data, res) {
     response.msg = err;
   }
   try {
-    fs.writeFileSync(`${__dirname}/database/rows/${table_name}.json`, '[]');
+    fs.writeFileSync(`${__dirname}/databases/${db_name}/rows/${table_name}.json`, '[]');
   } catch (err) {
     response.error = true;
   }

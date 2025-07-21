@@ -1,0 +1,20 @@
+{
+  "name": "Sessions",
+  "snakecase": "sessions",
+  "max_id": 0,
+  "columns": [
+    {
+      "name": "Id",
+      "snakecase": "id",
+      "unique": true
+    },
+    {
+      "name": "User Id",
+      "snakecase": "user_id"
+    },
+    {
+      "name": "Expiration Date",
+      "snakecase": "expiration"
+    }
+  ]
+}

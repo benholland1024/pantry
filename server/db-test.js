@@ -3,7 +3,7 @@ const DataBase = require('./database.js');
 
 console.log('===== Test 1: Adding a new dog')
 
-let new_dog = DataBase.table('dogs').insert({
+let new_dog = new DataBase('test-db').Table('dogs').insert({
   username: "linus55",
   name: "Linus",
   dog_type: "Bischon Frise",
@@ -20,7 +20,7 @@ if (new_dog.error) {
 
 console.log('===== Test 2: Finding the dog with the username linus55')
 
-let found_dog = DataBase.table('dogs').find({
+let found_dog = new DataBase('test-db').Table('dogs').find({
   username: "linus55"
 });
 
@@ -37,7 +37,7 @@ if (found_dog.length == 0) {
 
 console.log(`===== Test 3: Updating the dog with the id ${new_dog.id}`)
 
-let update_msg = DataBase.table('dogs').update(new_dog.id, {
+let update_msg = new DataBase('test-db').Table('dogs').update(new_dog.id, {
   name: 'Linus the Great',
   dog_type: 'Warrior Dog'
 });
@@ -46,7 +46,7 @@ console.log(update_msg);
 
 console.log('===== Test 4: Finding the dog with username linus55 again')
 
-let found_dog1 = DataBase.table('dogs').find({
+let found_dog1 = new DataBase('test-db').Table('dogs').find({
   username: "linus55"
 });
 
@@ -68,13 +68,13 @@ if (found_dog1.length == 0) {
 
 console.log(`===== Test 5: Deleting the newly created dog, with the id ${new_dog.id}`)
 
-let msg = DataBase.table('dogs').delete(new_dog.id);
+let msg = new DataBase('test-db').Table('dogs').delete(new_dog.id);
 
 console.log(msg);
 
 console.log('===== Test 6: Trying to find the dog with username linus55 again')
 
-let found_dog2 = DataBase.table('dogs').find({
+let found_dog2 = new DataBase('test-db').Table('dogs').find({
   username: "linus55"
 });
 
@@ -97,7 +97,7 @@ const rl = readline.createInterface({ input, output });
 rl.question('Want to run a test that results in an error? (y/n)', (answer) => {
   if (answer.toLowerCase() == 'y') {
     //  Invalid test
-    DataBase.table('not-a-table').insert({
+    new DataBase('test-db').Table('not-a-table').insert({
       row1: 'value-1',
       row2: false
     })

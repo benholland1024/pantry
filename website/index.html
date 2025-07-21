@@ -10,16 +10,18 @@
     <!---------------->
     <div id="side-bar">
       <h1>&#129387; The Data Pantry </h1>
-      <h3>Your Tables:</h3>
-      <div id="table-list"><!-- Insert table names here --></div>
+      <h3 style="text-decoration: underline;">your databases:</h3>
+      <div id="db-list"><!-- Insert table names here --></div>
     </div>
 
     <!------------------------------------>
     <!--  Main content (table display)  -->
     <!------------------------------------>
     <div id="page-content">
+      
       <div id="top-bar">
         <h2 id="table-name-display"><!--  Insert current table name here --></h2>
+        <div id="user-auth"></div>
       </div>
       <div id="error"></div>
 
@@ -35,7 +37,9 @@
   <script>
 
     //  GLOBAL DATA
-    let table_list =   []; //  List of all table names.
+    let db_list =   [];    //  List of all database names.
+    let selected_db = '';
+    let table_list = [];   //  List of table NAMES belonging to the selected DB. 
     let table = {};        //  Current selected table obj
     let selected_row = {}; 
     const column_data = [  //  All the properties used to define a table column
@@ -49,31 +53,76 @@
 
     //  BOOT
     function boot() {
+      //  Load all tables, render side bar.
+      Pantry.get_all_databases(function(_db_list) {
+        if (!_db_list.error) {
+          db_list = _db_list;
+          render_side_bar();
+          if (db_list) { load_database(db_list[0]);  }  //  Load the first table on startup
+        } else {
+          document.getElementById('error').innerHTML = _db_list.msg;
+        }
+      });
+
+      //  Render login buttons or user profile + log out. . 
+      render_login_buttons();
+    }
+    boot();
+    
+
+    ////
+    ////  RENDER user auth
+    ////
+    function render_login_buttons() {
+      //  Rendering login and register buttons
+      document.getElementById('user-auth').innerHTML = '<button onclick="render_login_input()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;';
+      document.getElementById('user-auth').innerHTML += '<button onclick="render_register_input()">Register</button>';
 
     }
-    Pantry.get_all_tables(function(table_list) {
-      if (!table_list.error) {
-        console.log("Table list recieved! ");
-        console.log(table_list);
-        render_side_bar();
-        if (table_list) { load_table(table_list[0]);  }  //  Load the first table on startup
-      } else {
-        document.getElementById('error').innerHTML = table_list.msg;
-      }
-    });
+
+    function render_login_input() {
+      let auth_input_html = '<div id="auth-input-box"><h3>Log in: </h3>';
+      auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
+      auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
+      auth_input_html += '<div><button onclick="login()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
+
+      auth_input_html += '</div>';
+      render_login_buttons();
+      document.getElementById('user-auth').innerHTML += auth_input_html;
+    }
+
+    function render_register_input() {
+      let auth_input_html = '<div id="auth-input-box"><h3>Register: </h3>';
+      auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
+      auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
+      auth_input_html += '<div>Confirm pass: <input id="confirm-pass" type="password" /></div><br/>';
+      auth_input_html += '<div><button onclick="register()">Register</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
+
+      auth_input_html += '</div>';
+      render_login_buttons();
+      document.getElementById('user-auth').innerHTML += auth_input_html;
+    }
 
     ////
     ////  RENDER side bar
     ////
     function render_side_bar() {
-      document.getElementById('table-list').innerHTML = '';
-      for (let i = 0; i < table_list.length; i++) {
-        let selected_class = 'selected-table';
-        if (table.columns) {         console.log(table.columns.snakecase); console.log(table_list[i]) }
-        if (table.columns && table.columns.snakecase != table_list[i]) {  selected_class = ''; }
-        document.getElementById('table-list').innerHTML += `<div class="table-name ${selected_class}" onclick="load_table('${table_list[i]}')">${table_list[i]}</div>`;
+      document.getElementById('db-list').innerHTML = '';
+      for (let i = 0; i < db_list.length; i++) {
+        let selected_class = 'selected';
+        if (selected_db != db_list[i]) {  selected_class = ''; }
+        document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${db_list[i]}')">${db_list[i]}</div>`;
+        //  Render list of DB tables, if the DB is selected:
+        // if (table.columns && table.columns.snakecase != db_list[i]) {  selected_class = ''; }
+        if (selected_db == db_list[i]) {
+          for (let j = 0; j < table_list.length; j++) {
+            selected_class = '';
+            if (table.columns && table_list[j] == table.columns.snakecase) {  selected_class = 'selected';  }
+            document.getElementById('db-list').innerHTML += `<div class="table-name ${selected_class}" onclick="load_table('${table_list[j]}')">${table_list[j]}</div>`;
+          }
+        }
       }
-      document.getElementById('table-list').innerHTML += `<div class="save-new-table" onclick="boot_table_maker()">+ Create a table</div>`;
+      document.getElementById('db-list').innerHTML += `<div class="save-new-table" onclick="boot_table_maker()">+ Create a table</div>`;
     }
 
     ////
@@ -133,7 +182,7 @@
       add_row_html += `<h3>Row ${i}</h3>`;
       for (let i = 0; i < columns.length; i++) {
         if (columns[i].snakecase == 'id') { continue; }
-        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="${columns[i].snakecase}" value="${selected_row[columns[i].snakecase]}"></div>`;
+        add_row_html += `<div class="row-input">${columns[i].name}: <input type="text" id="i-${columns[i].snakecase}" value="${selected_row[columns[i].snakecase]}"></div>`;
       }
       add_row_html += `<br/>`;
       add_row_html += `<div class="row-input">`;
@@ -189,7 +238,6 @@
       table_maker_html += `<tr><th>Column name</th><th>Column snakecase</th><th>Unique?</th><th>Required?</th><th>Foreign key?</th></tr>`;
       ///  Rendering column data... as rows... don't get confused here. 
       let rows = table.columns.columns;
-      console.log(rows);
       for (let i = 0; i < rows.length; i++) {
         let selected_class = 'class="selected-row"';
         if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
@@ -231,14 +279,13 @@
     ////
     //  Load a table onto the display
     function load_table(table_name) {
-      http.open("GET", "/api/table?name=" + table_name);
+      http.open("GET", `/api/table?db_name=${selected_db}&table_name=${table_name}`);
       http.send();
       http.onreadystatechange = (e) => {
         let response;      
         if (http.readyState == 4 && http.status == 200) {
           table = JSON.parse(http.responseText);
           if (!table.error) {
-            console.log("Table recieved! ");
             render_table();
             render_add_row_btn();
             render_side_bar();
@@ -247,6 +294,19 @@
           }
         }
       }
+    }
+
+    function load_database(db_name) {
+      selected_db = db_name;
+      Pantry.get_all_tables(db_name, function(_table_list) {
+        if (!_table_list.error) {
+          table_list = _table_list;
+          render_side_bar();
+          if (_table_list) { load_table(_table_list[0]);  }  //  Load the first table on startup
+        } else {
+          document.getElementById('error').innerHTML = _table_list.msg;
+        }
+      });
     }
 
     //  Add a row to the current table
@@ -259,14 +319,13 @@
           new_row[columns[i].snakecase] = input.value;
         }
       }
-      http.open("POST", "/api/insert?table=" + table.columns.snakecase);  //  "table" is a global variable
+      http.open("POST", `/api/insert?db_name=${selected_db}&table_name=${table.columns.snakecase}`);  //  "table" is a global variable
       http.send(JSON.stringify(new_row));
       http.onreadystatechange = (e) => {
         let response;      
         if (http.readyState == 4 && http.status == 200) {
           response = JSON.parse(http.responseText);
           if (!table.error) {
-            console.log("Row submitted! ");
             new_row.id = response.id;
             table.rows.push(new_row);
             render_table();
@@ -279,7 +338,7 @@
     }
 
     //  Update a row
-    function update_row(i) {
+    function update_row(row_num) {
       let columns = table.columns.columns;
       let row_update = {};
       for (let i = 0; i < columns.length; i++) {
@@ -288,15 +347,18 @@
           row_update[columns[i].snakecase] = input.value;
         }
       }
-      http.open("POST", `/api/update?table=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
+      http.open("POST", `/api/update?db_name=${selected_db}&table_name=${table.columns.snakecase}&id=${table.rows[row_num].id}`);  //  "table" is a global variable
       http.send(JSON.stringify(row_update));
       http.onreadystatechange = (e) => {
         let response;      
         if (http.readyState == 4 && http.status == 200) {
           response = JSON.parse(http.responseText);
           if (!table.error) {
-            console.log("Row updated! ");
-            table.rows[i] = row_update;
+            //  Update the "buffer" data:
+            for (let j = 0; j < Object.keys(row_update).length; j++) {
+              let key = Object.keys(row_update)[j];
+              table.rows[row_num][key] = row_update[key];
+            }
             // table.rows.push(new_row);
             render_table();
             render_add_row_btn();
@@ -309,14 +371,13 @@
 
     //  delete a row
     function delete_row(i) {
-      http.open("POST", `/api/delete?table=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
+      http.open("POST", `/api/delete?db_name=${selected_db}&table_name=${table.columns.snakecase}&id=${table.rows[i].id}`);  //  "table" is a global variable
       http.send();
       http.onreadystatechange = (e) => {
         let response;      
         if (http.readyState == 4 && http.status == 200) {
           response = JSON.parse(http.responseText);
           if (!table.error) {
-            console.log("Row deleted! ");
             table.rows.splice(i, 1);
             // table.rows.push(new_row);
             render_table();
@@ -342,8 +403,6 @@
         }
       }
       table.columns.columns.push(new_column);
-      console.log("Added");
-      console.log(table.columns.columns);
       render_table_maker();
     }
 
@@ -353,19 +412,14 @@
 
       new_table.name = document.getElementById('table-name-input').value;
       new_table.snakecase = new_table.name.toLowerCase().replace(' ', '-');
-      console.log("NEW_TABLE:")
-      console.log(new_table);
-      http.open("POST", "/api/create-table?table=" + new_table.snakecase);  //  "table" is a global variable
+      http.open("POST", `/api/create-table?db_name=${selected_db}`);
       http.send(JSON.stringify(new_table));
       http.onreadystatechange = (e) => {
         let response;      
         if (http.readyState == 4 && http.status == 200) {
           response = JSON.parse(http.responseText);
           if (!table.error) {
-            console.log("Created a new table! ");
-            // table.rows.push(new_row);
-            // render_table();
-            // render_add_row_btn();
+            table_list.push(new_table.snakecase);
             render_side_bar();
           } else {
             document.getElementById('error').innerHTML = response.msg;
@@ -388,6 +442,7 @@
       --content-bg-desat: hsl(from var(--content-bg) h calc(s - 40) l);
       --content-bg-desat-dark1: hsl(from var(--content-bg) h calc(s - 40) calc(l - 2));
       --content-bg-desat-light1: hsl(from var(--content-bg) h calc(s - 40) calc(l + 5));
+      --content-bg-desat-light2: hsl(from var(--content-bg) h calc(s - 40) calc(l + 10));
       --content-bg-dark2: hsl(from var(--content-bg) h s calc(l - 5));
       --content-bg-dark1: hsl(from var(--content-bg) h s calc(l - 2));
       --content-bg-light1: hsl(from var(--content-bg) h s calc(l + 5));
@@ -398,7 +453,9 @@
       --red-bg: rgb(63, 2, 10);
     }
 
+    /********************/
     /*  Side bar styles */
+    /********************/
     #side-bar {
       width: 300px;
       min-height: 100vh;
@@ -407,10 +464,10 @@
     }
     #side-bar h1, #side-bar h3 {
       padding: 10px;
-      opacity: 0.5;
     }
     #side-bar h1 {
       font-size: 1.5em;
+      font-family: serif;
       background: black; 
       margin-top: 0px; 
       padding: 15px;
@@ -418,20 +475,38 @@
     #side-bar h3 {
       margin-bottom: 0px;
       padding-bottom: 0px;
+      opacity: 0.5;
     }
     #side-bar div {
       padding: 10px;
     }
-    .table-name, .save-new-table {
+    .db-name::before {
+      content: '\25B8  ';
+    }
+    .db-name.selected::before {
+      content: '\25BE  ';
+    }
+    .table-name, .save-new-table, .db-name {
       cursor: pointer;
+      opacity: 0.5;
     }
-    .table-name:hover, .save-new-table:hover {
-      background: var(--content-bg-desat-light1);
-      color: white;
+    .table-name {
+      padding-left: 35px !important;
+      background:var(--content-bg-desat-light1);
+      font-size: 0.8em;
     }
-    .selected-table {
+    .selected {
       background: var(--content-bg-desat-light1);
       font-weight: bold;
+      opacity: 1;
+    }
+    .db-name.selected {
+      background: var(--content-bg-desat);
+    }
+    .table-name:hover, .save-new-table:hover, .db-name:hover {
+      background: var(--content-bg-desat-light2);
+      color: white;
+      opacity: 1;
     }
     .save-new-table {
       color: rgba(255,255,255,0.5);
@@ -453,7 +528,29 @@
       padding: 20px;
       box-sizing: border-box;
       text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    /*  Log in   */
+    #user-auth {
+      display: relative;
+    }
+    #auth-input-box {
+      position: absolute;
+      min-width: 230px;
+      min-height: 230px;
+      top: 70px;
+      right: 0px;
+      background: var(--content-bg);
+      border: solid var(--content-bg-light1) 3px;
+      box-shadow: var(--box-shadow);
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+
     #table-name-display {
       padding: 0px;
       margin: 0px;

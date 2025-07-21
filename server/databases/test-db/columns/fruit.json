@@ -1,0 +1,28 @@
+{
+  "name": "Fruit",
+  "max_id": 0,
+  "columns": [
+    {
+      "name": "Id",
+      "snakecase": "id",
+      "unique": true,
+      "required": true,
+      "reference": false
+    },
+    {
+      "name": "Name",
+      "snakecase": "name",
+      "unique": false,
+      "required": false,
+      "reference": true
+    },
+    {
+      "name": "Color",
+      "snakecase": "color",
+      "unique": false,
+      "required": false,
+      "reference": true
+    }
+  ],
+  "snakecase": "fruit"
+}
