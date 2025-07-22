@@ -27,8 +27,8 @@ function render_table() {
     // table_string += `<td>&#9999; &nbsp; &#128465;</td>`;
     table_string += `</tr>`;
   }
-  table_string += `</table><br/>`;
-  if (rows.length < 1) {  table_string += `<p><i>No rows in this table yet! </i></p>`;  }
+  table_string += `</table>`;
+  if (rows.length < 1) {  table_string += `<div class="empty-table-space"><i>No rows in this table yet! </i></div>`;  }
   document.getElementById('table-display').innerHTML = table_string;
 }
 

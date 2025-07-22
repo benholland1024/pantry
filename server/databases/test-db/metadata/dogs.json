@@ -2,7 +2,7 @@
   "name": "Dogs",
   "snakecase": "dogs",
   "managed_by": "sample",
-  "max_id": 8,
+  "max_id": 9,
   "columns": [
     {
       "name": "Id",

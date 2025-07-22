@@ -2,7 +2,7 @@
   {
     "username": "linus",
     "name": "Linus",
-    "dog_type": "Bischon",
+    "dog_type": "Bichon frise",
     "age": "9",
     "facts": "Cutie",
     "id": 5
@@ -10,9 +10,17 @@
   {
     "username": "georgie",
     "name": "Georgie",
-    "dog_type": "Idk",
+    "dog_type": "king charles cavalier",
     "age": "9",
     "facts": "Cutie",
     "id": 6
+  },
+  {
+    "username": "josie",
+    "name": "Josie",
+    "dog_type": "Cat",
+    "age": "9",
+    "facts": "Cute supervillan",
+    "id": 8
   }
 ]
