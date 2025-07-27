@@ -7,34 +7,36 @@ var fs   = require('fs');
 //    Get a table with this syntax:
 //      let user_table = Database('pantry-housekeeping').Table('users');
 class Database {
-  constructor(name) {
+  constructor(username, name) {
+    this.username = username;
     this.name = name;
     try  {
-      this.table_names = fs.readdirSync(`${__dirname}/databases/${this.name}`);
+      this.table_names = fs.readdirSync(`${__dirname}/databases/${this.username}/${this.name}`);
     } catch (err) {
-      throw new Error(`There is no database folder with the name ${__dirname}/databases/${this.name}`)
+      throw new Error(`There is no database folder with the name ${__dirname}/databases/${this.username}/${this.name}`)
     }
   }
 
   Table(table_name) {
-    return new Table(this.name, table_name);
+    return new Table(this.username, this.name, table_name);
   }
 }
 
 class Table {
 
-  constructor(db_name, name) {
-    this.name = name;
+  constructor(username, db_name, name) {
+    this.username = username;
     this.db_name = db_name;
+    this.name = name;
     try {
-      this.metadata = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/metadata/${name}.json`, 'utf8'));
+      this.metadata = JSON.parse(fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${name}.json`, 'utf8'));
     } catch (err) {
-      throw new Error(`The file "\x1b[32m/databases/${db_name}/metadata/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
+      throw new Error(`The file "\x1b[32m/databases/${username}/${db_name}/metadata/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
     }
     try {
-      this.rows = JSON.parse(fs.readFileSync(`${__dirname}/databases/${db_name}/rows/${name}.json`, 'utf8'));
+      this.rows = JSON.parse(fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${name}.json`, 'utf8'));
     } catch (err) {
-      throw new Error(`The file "\x1b[32m/databases/${db_name}/rows/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
+      throw new Error(`The file "\x1b[32m/databases/${username}/${db_name}/rows/${name}.json\x1b[0m" does not exist or is not proper JSON.`)
     }
   }
 
@@ -100,8 +102,8 @@ class Table {
     response.id = row_data.id;
     this.metadata.max_id++;
     this.rows.push(row_data);
-    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
-    fs.writeFileSync(`${__dirname}/databases/${this.db_name}/metadata/${this.name}.json`, JSON.stringify(this.metadata, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${this.username}/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${this.username}/${this.db_name}/metadata/${this.name}.json`, JSON.stringify(this.metadata, null, 2));
     return response;
   }
 
@@ -131,7 +133,7 @@ class Table {
       return response;
     } else {  //  Save it!
       this.rows[index_to_update] = updated_row_copy;
-      fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+      fs.writeFileSync(`${__dirname}/databases/${this.username}/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
       response.id = this.rows[index_to_update].id;
     }
     
@@ -142,7 +144,7 @@ class Table {
     for (let i = 0; i < this.rows.length; i++) {
       if (this.rows[i].id == id_to_delete) {
         this.rows.splice(i, 1);
-        fs.writeFileSync(`${__dirname}/databases/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
+        fs.writeFileSync(`${__dirname}/databases/${this.username}/${this.db_name}/rows/${this.name}.json`, JSON.stringify(this.rows, null, 2));
         return `Deleted the row with id ${id_to_delete}`;
       }
     }

@@ -1,7 +1,7 @@
 ////
-////  RENDER TABLE MAKER / EDITOR 
+////  TABLE MAKER / EDITOR 
 ////
-//      This includes:
+//      Edit a table, including:
 //       - Table name / snakecase
 //       - Table columns
 
@@ -18,7 +18,7 @@ const column_data = [  //  All the properties used to define a table column
 //  Start the table_maker interface.
 function boot_table_maker() {
   //  Reset the global "table" variable, with empty meta data
-  table = {
+  _selected_table = {
     metadata: {
       name: '',
       max_id: 0,
@@ -32,12 +32,15 @@ function boot_table_maker() {
       ]
     }
   }
+  unrender_all();
+
   render_table_maker(); //  Render the table. 
   render_add_column();  //  Render the "new column" layout
   render_side_bar();
 }
 //  Go to the add table page
 function render_table_maker() {
+  window.history.pushState({ },"", `/database/${_selected_db.name}/create-table`);
   // The top bar
     //  The following line grabs the current table name if it exists, to preserve it on rerender.
   let current_table_name = document.getElementById('table-name-input') ? document.getElementById('table-name-input').value : '';  
@@ -46,20 +49,20 @@ function render_table_maker() {
       New table name: <input type="text" id="table-name-input" value="${current_table_name}"/>
     </div>
     <div id="table-snakecase-container">
-      ${selected_db}/
+      ${_selected_db.name}/table/
     </div>
   </div>`;
 
   document.getElementById('top-bar-title').innerHTML = top_bar_html;
   document.getElementById('table-name-input').addEventListener('input', e => {
-    document.getElementById('table-snakecase-container').innerHTML = `${selected_db}/${to_snakecase(e.target.value)}`;
+    document.getElementById('table-snakecase-container').innerHTML = `${_selected_db.name}/table/${to_snakecase(e.target.value)}`;
   });
 
   //  Render the table:
   let table_maker_html = `<table>`;
   table_maker_html += `<tr><th>Column name</th><th>Column snakecase</th><th>Unique?</th><th>Required?</th><th>Foreign key?</th></tr>`;
   ///  Rendering column data... as rows... don't get confused here. 
-  let rows = table.metadata.columns;
+  let rows = _selected_table.metadata.columns;
   for (let i = 0; i < rows.length; i++) {
     let selected_class = 'class="selected-row"';
     if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
@@ -74,17 +77,9 @@ function render_table_maker() {
   document.getElementById('table-display').innerHTML = table_maker_html;
 }
 
-//  Render table name snakecase whenever table name is updated
-function render_table_name_snakecase(e) {
-  let table_name = document.getElementById('table-name-input').value;
-  if (e.key.length == 1) { table_name += e.key; }
-  else if (e.key == 'Backspace') {  table_name = table_name.slice(0, -1);  };
-  document.getElementById('table-snakecase-container').innerHTML = `Table snakecase: ${table_name.toLowerCase().replace(' ', '-')}`;
-}
-
 //  Render the add column inputs
 function render_add_column() {
-  let columns = table.metadata.columns;
+  let columns = _selected_table.metadata.columns;
   let add_row_html = '<div id="row-editor">';
   add_row_html += '<h3>New row</h3>';
   add_row_html += `<div class="row-input">Column name: <input type="text" id="i-name"></div>`;
@@ -119,31 +114,32 @@ function add_column() {
   let new_column = {};
   for (let i = 0; i < column_data.length; i++) {
     let input = document.getElementById("i-" + column_data[i][1]);
-    if (input.type == 'text') {
+    if (column_data[i][1] == 'snakecase') {
+      new_column.snakecase = to_snakecase(new_column.name);
+    } else if (input.type == 'text') {
       new_column[column_data[i][1]] = input.value;
     } else if (input.type == 'checkbox') {
       new_column[column_data[i][1]] = input.checked;
     }
   }
   new_column.snakecase = to_snakecase(new_column.name);
-  table.metadata.columns.push(new_column);
+  _selected_table.metadata.columns.push(new_column);
   render_table_maker();
 }
 
 //  Create new table .json file in Pantry
 function save_new_table() {
-  let new_table = table.metadata;
+  let new_table = _selected_table.metadata;
 
   new_table.name = document.getElementById('table-name-input').value;
   new_table.snakecase = to_snakecase(new_table.name);
-  http.open("POST", `/api/create-table?db_name=${selected_db}`);
+  http.open("POST", `/api/create-table?username=${_current_user.username}&db_name=${_selected_db.name}`);
   http.send(JSON.stringify(new_table));
   http.onreadystatechange = (e) => {
-    let response;      
     if (http.readyState == 4 && http.status == 200) {
-      response = JSON.parse(http.responseText);
-      if (!table.error) {
-        table_list.push(new_table.snakecase);
+      let response = JSON.parse(http.responseText);
+      if (!response.error) {
+        _table_list.push(new_table.snakecase);
         render_side_bar();
       } else {
         document.getElementById('error').innerHTML = response.msg;

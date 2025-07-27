@@ -40,24 +40,20 @@ const pageURLkeys = Object.keys(pageURLs);
 
 //  This function will fire upon every request to our server.
 function server_request(req, res) {
-  var url = req.url;
+  let url = req.url;
   console.log(`\x1b[36m >\x1b[0m New ${req.method} request: \x1b[34m${url}\x1b[0m`);
 
   res.writeHead(200, {'Content-Type': 'text/html'});
-  var extname = String(path.extname(url)).toLowerCase();
+  let extname = String(path.extname(url)).toLowerCase();
   
-  if (extname.length == 0 && url.split('/')[1] == 'api') {     /*  API routes.      */
+  if (url.includes('server')) {  /*  Don't send anything from the /server/ folder.  */
+    respond_with_a_page(res, '/404');
+  } else if (extname.length == 0 && url.split('/')[1] == 'api') {     /*  API routes.      */
     api_routes(url, req, res);
-  } else if (url == '/pantry.js') {
-    let response = fs.readFileSync(__dirname + '/../website/pantry.js');
-    res.write(response);
-    res.end();
-  } else if (url == '/') {
+  } else if (extname.length == 0) {            /*  No extension? Respond with index.html.  */
     let response = fs.readFileSync(__dirname + '/../website/index.html');
     res.write(response);
     res.end();
-  } else if (url.includes('server')) {  /*  Don't send anything from the /server/ folder.  */
-    respond_with_a_page(res, '/404');
   } else {    /*  Extension, like .png, .css, .js, etc? If found, respond with the asset.  */
     respond_with_asset(res, url, extname);
   }
@@ -180,9 +176,9 @@ function api_routes(url, req, res) {
 }
 
 //  Get a list of the names of all databases. 
-//    TODO:  Make this search databases by user. 
+//    Param: /api/all-databases?user=my-username
 GET_routes['/api/all-databases'] = function(data, res) {
-  let db_names = fs.readdirSync(`${__dirname}/databases`);
+  let db_names = fs.readdirSync(`${__dirname}/databases/${data.username}`);
   for (let i = 0; i < db_names.length; i++) {
     db_names[i] = path.parse(db_names[i]).name;
   }
@@ -190,10 +186,14 @@ GET_routes['/api/all-databases'] = function(data, res) {
 }
 
 //  Get all tables from a database. 
-//    Param: /api/all-table-names?database=dogs
+//    Param: /api/all-table-names?username=my-username?database=dogs
 GET_routes['/api/all-table-names'] = function(data, res) {
-  let database_name = data.database;
-  let table_names = fs.readdirSync(`${__dirname}/databases/${database_name}/metadata`);
+  let table_names = [];
+  try {
+    table_names = fs.readdirSync(`${__dirname}/databases/${data.username}/${data.database}/metadata`);
+  } catch (err) {
+    //  No tables in that db
+  }
   for (let i = 0; i < table_names.length; i++) {
     table_names[i] = path.parse(table_names[i]).name;
   }
@@ -201,11 +201,9 @@ GET_routes['/api/all-table-names'] = function(data, res) {
 }
 
 //  Get one or more tables from a given database. 
-//    Params: /api/table?db_name=my-db&table_name=my-table
+//    Params: /api/table?username=my-username&db_name=my-db&table_name=my-table
 GET_routes['/api/table'] = function(data, res) {
-  let db_name = data.db_name;
-  let table_name = data.table_name;
-  let response = new DataBase(db_name).Table(table_name);
+  let response = new DataBase(data.username, data.db_name).Table(data.table_name);
   if (typeof response != 'object') {
     api_response(res, 400, `Table doesn't exist`);
     return;
@@ -214,11 +212,11 @@ GET_routes['/api/table'] = function(data, res) {
 }
 
 GET_routes['/api/user-by-session'] = function(params, res) {
-  let session_data = new DataBase('pantry-housekeeping').Table('sessions').find({ id: parseInt(params.session_id) });
+  let session_data = new DataBase('admin', 'pantry-housekeeping').Table('sessions').find({ id: parseInt(params.session_id) });
   if (session_data.length < 1) {
     return api_response(res, 404, 'No session found');
   }
-  let user_data = new DataBase('pantry-housekeeping').Table('users').find({ id: session_data[0].user_id });
+  let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ id: session_data[0].user_id });
   if (user_data.length < 1) {
     api_response(res, 404, `No user found for session ${session_data[0].id}.`);
   } else {
@@ -265,15 +263,16 @@ POST_routes['/api/delete'] = function(data, res) {
 }
 
 //  Add a new table.
-//    Param: /api/create-table?db_name=my-db
+//    Param: /api/create-table?username=my-username&db_name=my-db
 //    Data:  An object like { name: '', snakecase: '', columns: [ {...}, {...} ] }
 POST_routes['/api/create-table'] = function(data, res) {
   let db_name = data._params.db_name;
+  let username = data._params.username;
   let table_name = data.snakecase;
   delete data._params
   let response = {};
   try {
-    fs.writeFileSync(`${__dirname}/databases/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
     response.msg = `Created new table with the name "${table_name}"!`;
     console.log(response.msg);
   } catch (err) {
@@ -282,35 +281,56 @@ POST_routes['/api/create-table'] = function(data, res) {
     response.msg = err;
   }
   try {
-    fs.writeFileSync(`${__dirname}/databases/${db_name}/rows/${table_name}.json`, '[]');
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, '[]');
   } catch (err) {
     response.error = true;
+    response.msg = error;
   }
   api_response(res, 200, JSON.stringify(response));
 }
 
+//  Create a new database (a new folder)
+POST_routes['/api/create-db'] = function(data, res) {
+  let response = {};
+  try {
+    fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}`, {recursive: true}); // Recursive means create parent dirs when needed
+    fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata`); 
+    fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/rows`); 
+
+  } catch (err) {
+    response.error = true;
+    response.msg = err;
+    console.log(err);
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+//  Register a new user. 
+//    Param: /api/register
+//    Data: { username, password }
 POST_routes['/api/register'] = function(new_user, res) {
   new_user.salt = crypto.randomBytes(16).toString('hex');
   new_user.password = crypto.pbkdf2Sync(new_user.password, new_user.salt, 1000, 64, `sha512`).toString(`hex`);
   //  Add the user to the db.
-  let response = new DataBase('pantry-housekeeping').Table('users').insert(new_user);
+  let response = new DataBase('admin', 'pantry-housekeeping').Table('users').insert(new_user);
   
   if (!response.error) {
     //  Add a session to the db.
     let expire_date = new Date()
     expire_date.setDate(expire_date.getDate() + 30);
-    let new_session_response = new DataBase('pantry-housekeeping').Table('sessions').insert({
+    let new_session_response = new DataBase('admin', 'pantry-housekeeping').Table('sessions').insert({
       user_id: response.id,
       expires: expire_date
     })
     response.error = new_session_response.error;
     response.session_id = new_session_response.id;
+    fs.mkdirSync(`${__dirname}/databases/${new_user.username}`); //  Create the user's databse folder.
   }
   api_response(res, 200, JSON.stringify(response));
 }
 
 POST_routes['/api/login'] = function(login_info, res) {
-  let user_data = new DataBase('pantry-housekeeping').Table('users').find({ username: login_info.username });
+  let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ username: login_info.username });
   let response = {
     error: false,
     msg: '',
@@ -330,7 +350,7 @@ POST_routes['/api/login'] = function(login_info, res) {
     response.user_data = user_data[0];
     let expire_date = new Date()
     expire_date.setDate(expire_date.getDate() + 30);
-    let session_data = new DataBase('pantry-housekeeping').Table('sessions').insert({
+    let session_data = new DataBase('admin', 'pantry-housekeeping').Table('sessions').insert({
       user_id: user_data[0].id,
       expires: expire_date
     })
@@ -341,7 +361,7 @@ POST_routes['/api/login'] = function(login_info, res) {
 }
 
 POST_routes['/api/logout'] = function(req_data, res) {
-  let success_msg = new DataBase('pantry-housekeeping').Table('sessions').delete(req_data.body);
+  let success_msg = new DataBase('admin', 'pantry-housekeeping').Table('sessions').delete(req_data.body);
   api_response(res, 200, success_msg);
 }
 
