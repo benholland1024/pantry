@@ -3,7 +3,8 @@
 ////
 //  Render the table
 function render_table() {
-  document.getElementById('table-name-display').innerHTML = `Table name: <b>${table.metadata.name}</b>`;
+  document.getElementById('top-bar-title').innerHTML = `Table name: <b>${table.metadata.name}</b>`;
+  document.getElementById('landing').style.display = 'none';
   let table_string = `<table><tr>`
   //  Table header
   let columns = table.metadata.columns;

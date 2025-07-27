@@ -4,13 +4,13 @@
     <script src="./pantry.js"></script>
   </head>
 
-  <body>
+  <body style="background:black;">
     <!---------------->
     <!--  Side bar  -->
     <!---------------->
     <div id="side-bar">
-      <h1>&#129387; The Data Pantry </h1>
-      <h3 style="text-decoration: underline;">your databases:</h3>
+      <h1 id="side-bar-title" onclick="render_landing()">&#129387; DataPantry </h1>
+      <h3 style="text-decoration: underline;" id="side-bar-subtitle">your databases:</h3>
       <div id="db-list"><!-- Insert table names here --></div>
     </div>
 
@@ -20,10 +20,26 @@
     <div id="page-content">
       
       <div id="top-bar">
-        <h2 id="table-name-display"><!--  Insert current table name here --></h2>
+        <h2 id="top-bar-title"><!--  Insert current table name here --></h2>
         <div id="user-auth"></div>
       </div>
       <div id="error"></div>
+
+      <!--  Landing  -->
+      <div id="landing" style="display:none;">
+        <img src="/assets/can-and-bg.png" alt="A picture of a can of soup that says 'DataPantry' in the style of the Campbell's soup logo."/>
+        <h2>Cloud database management. Easy to use. 100% free.</h2>
+        <p><i>
+          *This is a personal, learning project. I don't gaurantee your data is secure because I haven't spent enough time on the project. 
+          I do plan to improve and maintain it, and I appreciate anyone willing to try it out!
+        </i></p>
+        <p style="opacity: 0.5"><i>
+          If you're interested, feel free to <a href="github.com/benholland1024/pantry" target="_blank">contribute</a>!
+          This is a dependency-less project written in NodeJS, if that's your thing. 
+        </i></p>
+        <br/>
+        <button onclick="render_register_input()">Register to create your first database!</button>
+      </div>
 
       <!-- Table display stuff -->
       <div id="table-display"><!-- Insert table and controls here  --></div>
@@ -43,34 +59,62 @@
   <script>
 
     //  GLOBAL DATA
-    let db_list =   [];    //  List of all database names.
-    let selected_db = '';
-    let table_list = [];   //  List of table NAMES belonging to the selected DB. 
-    let table = {};        //  Current selected table obj
-    let selected_row = {}; 
-    const http = new XMLHttpRequest(); // todo: remove this?
+    let db_list =   [];                                     //  List of all database names.
+    let selected_db = '';                                   //  The currently selected database name.
+    let table_list = [];                                    //  List of table NAMES belonging to the selected DB. 
+    let table = {};                                         //  Current selected table obj
+    let selected_row = {};                                  //  Current selected table row.
+    let _session_id = localStorage.getItem('session_id');   //  User auth session id
+    let _current_user = {};
+    const http = new XMLHttpRequest();                      //  Used for HTTP requests
 
     let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
 
 
     //  BOOT
     function boot() {
-      //  Load all tables, render side bar.
-      Pantry.get_all_databases(function(_db_list) {
-        if (!_db_list.error) {
-          db_list = _db_list;
-          render_side_bar();
-          if (db_list) { load_database(db_list[0]);  }  //  Load the first table on startup
-        } else {
-          document.getElementById('error').innerHTML = _db_list.msg;
+       
+      console.log(_session_id)
+      //  If the user isn't logged in...
+      if (_session_id) {
+        http.open('GET', `/api/user-by-session?session_id=${_session_id}`);
+        http.send();
+        http.onreadystatechange = (e) => {
+          if (http.readyState == 4 && http.status == 200) {
+            _current_user = JSON.parse(http.responseText);
+            boot_side_bar();
+            render_user_profile_button();
+          } else if (http.readyState == 4 && http.status == 404) {
+            console.log('No session found.');
+            localStorage.removeItem('session_id');
+            render_landing();
+          }
         }
-      });
-
-      //  Render login buttons or user profile + log out. . 
-      render_login_buttons();
+              
+      //  Minimize the side bar if logged out
+      } else {
+        render_landing();
+      }
     }
     boot();
 
+    //  Unrenders all div content.  Used before rendering a new "page".
+    function unrender_all() {
+      document.getElementById('table-display').innerHTML = "";
+      document.getElementById('row-editor-container').innerHTML = "";
+      document.getElementById('action-button-container').innerHTML = "";
+      document.getElementById('landing').style.display = 'none';
+    }
+
+    function render_landing() {
+      unrender_all();
+      minimize_side_bar();
+      if (!_current_user) {
+        render_login_buttons();
+      }
+      document.getElementById('top-bar-title').innerHTML = '<h1>DataPantry</h1>'
+      document.getElementById('landing').style.display = 'block';
+    }
 
     function boot_db_maker() {
       document.getElementById('table-display').innerHTML = "";
@@ -116,6 +160,7 @@
       open_auth_box = 'register';
       let auth_input_html = '<div id="auth-input-box"><h3>Register: </h3>';
       auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
+      auth_input_html += '<div>Display name: <input id="display-name"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
       auth_input_html += '<div>Confirm pass: <input id="confirm-pass" type="password" /></div><br/>';
       auth_input_html += '<div><button onclick="register()">Register</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
@@ -125,10 +170,50 @@
       document.getElementById('user-auth').innerHTML += auth_input_html;
     }
 
+    function render_user_profile_button() {
+      document.getElementById('user-auth').innerHTML = `<button onclick="render_user_options()">&#x1F464; ${_current_user.username}</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
+    }
+
+    function render_user_options() {
+      if (open_auth_box == 'user-options') { 
+        render_user_profile_button();  
+        open_auth_box = 'none';
+        return;  
+      }
+      open_auth_box = 'user-options';
+      let auth_input_html = '<div id="auth-input-box" style="height:100px"><h3>Hi! </h3>';
+      auth_input_html += `<div>Username: ${_current_user.username} </div><br/>`;
+      auth_input_html += '<div><button onclick="logout()">Log out</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_user_options()">Close</button></div>';
+
+      auth_input_html += '</div>';
+      render_user_profile_button();
+      document.getElementById('user-auth').innerHTML += auth_input_html;
+
+    }
+
     ////
     ////  RENDER side bar
     ////
+
+    //  First start up the side bar. 
+    //    This gets the databases. 
+    function boot_side_bar() {
+      Pantry.get_all_databases(function(_db_list) {
+        if (!_db_list.error) {
+          db_list = _db_list;
+          render_side_bar();
+          if (db_list) { load_database(db_list[0]);  }  //  Load the first table on startup
+        } else {
+          document.getElementById('error').innerHTML = _db_list.msg;
+        }
+      });
+    }
+
+    //  This renders all the side bar components.  Used any time a new DB or table is selected. 
     function render_side_bar() {
+      document.getElementById('side-bar-title').innerHTML = '&#129387; DataPantry';
+      document.getElementById('side-bar').style.width = '300px';
+      document.getElementById('side-bar').style['min-width'] = '300px';
       document.getElementById('db-list').innerHTML = '';
       for (let i = 0; i < db_list.length; i++) {
         let selected_class = 'selected';
@@ -145,6 +230,15 @@
         }
       }
       document.getElementById('db-list').innerHTML += `<div class="create-new-database" onclick="boot_db_maker()">+ Create a database</div>`;
+    }
+
+    function minimize_side_bar() {
+      document.getElementById('side-bar-title').innerHTML = "&#129387;";
+      document.getElementById('side-bar-subtitle').innerHTML = "";
+      document.getElementById('db-list').innerHTML = "";
+      document.getElementById('side-bar').style.width = "60px";
+      document.getElementById('side-bar').style['min-width'] = "60px";
+
     }
 
    
@@ -172,11 +266,84 @@
     function render_db_diagram() {
 
     }
+
+    function register() {
+      let username = document.getElementById('username').value;
+      let password = document.getElementById('pass').value;
+      http.open('POST', '/api/register');
+      http.send(JSON.stringify({
+        username: username,
+        password
+      }));
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          response = JSON.parse(http.responseText);
+          if (!response.error) {
+            console.log("Response recieved! Logging you in.");
+            localStorage.setItem('session_id', response.session_id);
+            console.log(localStorage.getItem('session_id'))
+            _session_id = response.session_id;
+            boot_side_bar();
+            render_user_profile_button();  //  Close the register popup.
+            open_auth_box = 'none';  //  Mark the register popup as closed.
+            _current_user = {username};
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+    function login() {
+      var username = document.getElementById('username').value;
+      var password = document.getElementById('pass').value;
+
+      if (username.length < 2) {
+        document.getElementById('error').innerHTML = 'Valid username required.';
+        return;
+      }
+
+      http.open("POST", "/api/login");
+      http.send(JSON.stringify({
+        username: username,
+        password
+      }));
+      http.onreadystatechange = (e) => {
+        let response;      
+        if (http.readyState == 4 && http.status == 200) {
+          response = JSON.parse(http.responseText);
+          if (!response.error) {
+            console.log("Response recieved! Logging you in.");
+            localStorage.setItem('session_id', response.session_id);
+            _session_id = response.session_id;
+            _current_user = {username};
+            boot_side_bar();
+            render_user_profile_button();  //  Close the login popup.
+            open_auth_box = 'none';  //  Mark the login popup as closed.
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
+        }
+      }
+    }
+
+    function logout() {
+      http.open("POST", "/api/logout");
+      http.send(_session_id);
+      http.onreadystatechange = (e) => {
+        if (http.readyState == 4 && http.status == 200) {
+          localStorage.removeItem('session_id'); //  sets to null
+          render_landing();
+        }
+      }
+    }
   </script>
 
   <style>
     body {
       color: white;
+      background: black;
       display: flex;
       font-family: sans-serif;
       padding: 0px;
@@ -205,19 +372,25 @@
     /********************/
     #side-bar {
       width: 300px;
+      min-width: 300px;
       min-height: 100vh;
       background: var(--content-bg-desat-dark1);
       box-sizing: border-box;
+      transition-duration: 0.5s;
+      transition-property: width;
     }
     #side-bar h1, #side-bar h3 {
       padding: 10px;
     }
     #side-bar h1 {
       font-size: 1.5em;
-      font-family: serif;
+      /* font-family: serif; */
       background: black; 
       margin-top: 0px; 
       padding: 15px;
+    }
+    #side-bar-title {
+      cursor: pointer;
     }
     #side-bar h3 {
       margin-bottom: 0px;
@@ -236,6 +409,7 @@
     .table-name, .create-new-table, .db-name, .create-new-database {
       cursor: pointer;
       opacity: 0.5;
+      overflow: ellipse;
     }
     .table-name, .create-new-table {  /*  These are indented */
       padding-left: 35px !important;
@@ -270,12 +444,17 @@
       width: 100%;
       position: relative;   
       background: var(--content-bg-desat-dark1);
-      padding: 20px;
+      padding: 10px 20px;
       box-sizing: border-box;
       text-align: left;
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+    #top-bar h1 {
+      font-size: 1.5em;
+      margin: 0px;
+      padding: 0px;
     }
 
     /*  Log in   */
@@ -286,8 +465,8 @@
       position: absolute;
       min-width: 230px;
       min-height: 230px;
-      top: 70px;
-      right: 0px;
+      top: 60px;
+      right: 20px;
       background: rgba(50, 50, 192, 0.1);
 
       backdrop-filter: blur(20px);
@@ -298,8 +477,19 @@
       box-sizing: border-box;
     }
 
+    /*  Landing  */
+    #landing {
+      display: none;
+      width: 75%;
+      margin: 0 auto;
+    }
+    #landing img {
+      margin-top: 100px;
+    }
 
-    #table-name-display {
+
+    /*  Tables  */
+    #top-bar-title {
       padding: 0px;
       margin: 0px;
       font-weight: normal;
@@ -307,10 +497,15 @@
     }
     table {
       margin: 30px auto 0px auto;
-      width: 75%;
+      width: 95%;
+      table-layout: fixed;
+      overflow: scroll;
 
       border-collapse: collapse;
       box-shadow: var(--box-shadow);
+    }
+    tr {
+      overflow: scroll;
     }
     tr:nth-child(even) {
       background: var(--content-bg-light1);
@@ -332,6 +527,11 @@
     td, th {
       /* border: 1px solid white; */
       padding: 15px;
+      overflow-x: scroll;
+    }
+    td::-webkit-scrollbar, th::-webkit-scrollbar {
+      width: 0;
+      height: 0;
     }
     .empty-table-space {
       background: var(--content-bg-light1);

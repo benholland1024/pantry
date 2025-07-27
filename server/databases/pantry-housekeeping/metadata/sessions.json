@@ -1,7 +1,7 @@
 {
   "name": "Sessions",
   "snakecase": "sessions",
-  "max_id": 0,
+  "max_id": 9,
   "columns": [
     {
       "name": "Id",
@@ -14,7 +14,7 @@
     },
     {
       "name": "Expiration Date",
-      "snakecase": "expiration"
+      "snakecase": "expires"
     }
   ]
 }

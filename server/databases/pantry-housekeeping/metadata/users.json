@@ -1,7 +1,7 @@
 {
   "name": "Users",
   "snakecase": "users",
-  "max_id": 0,
+  "max_id": 8,
   "columns": [
     {
       "name": "Id",
@@ -16,7 +16,7 @@
     {
       "name": "Display Name",
       "snakecase": "display_name",
-      "unique": true
+      "unique": false
     },
     {
       "name": "Email",

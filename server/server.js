@@ -6,6 +6,7 @@ console.log('Starting the Pantry server! 🥫');
 var http = require('http');  // listen to HTTP requests
 var path = require('path');  // manage filepath names
 var fs   = require('fs');    // access files on the server
+var crypto = require('crypto'); // encrypt user passwords
 var DataBase = require('./database.js');
 
 
@@ -212,6 +213,20 @@ GET_routes['/api/table'] = function(data, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
+GET_routes['/api/user-by-session'] = function(params, res) {
+  let session_data = new DataBase('pantry-housekeeping').Table('sessions').find({ id: parseInt(params.session_id) });
+  if (session_data.length < 1) {
+    return api_response(res, 404, 'No session found');
+  }
+  let user_data = new DataBase('pantry-housekeeping').Table('users').find({ id: session_data[0].user_id });
+  if (user_data.length < 1) {
+    api_response(res, 404, `No user found for session ${session_data[0].id}.`);
+  } else {
+    api_response(res, 200, JSON.stringify(user_data[0]));
+  }
+}
+
+
 //  Insert a row into a table.  
 //    Param: /api/insert?db_name=my-db&table_name=my-table
 //    Data:  An object with row data. 
@@ -272,6 +287,62 @@ POST_routes['/api/create-table'] = function(data, res) {
     response.error = true;
   }
   api_response(res, 200, JSON.stringify(response));
+}
+
+POST_routes['/api/register'] = function(new_user, res) {
+  new_user.salt = crypto.randomBytes(16).toString('hex');
+  new_user.password = crypto.pbkdf2Sync(new_user.password, new_user.salt, 1000, 64, `sha512`).toString(`hex`);
+  //  Add the user to the db.
+  let response = new DataBase('pantry-housekeeping').Table('users').insert(new_user);
+  
+  if (!response.error) {
+    //  Add a session to the db.
+    let expire_date = new Date()
+    expire_date.setDate(expire_date.getDate() + 30);
+    let new_session_response = new DataBase('pantry-housekeeping').Table('sessions').insert({
+      user_id: response.id,
+      expires: expire_date
+    })
+    response.error = new_session_response.error;
+    response.session_id = new_session_response.id;
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+POST_routes['/api/login'] = function(login_info, res) {
+  let user_data = new DataBase('pantry-housekeeping').Table('users').find({ username: login_info.username });
+  let response = {
+    error: false,
+    msg: '',
+    user_data: '',
+    session_id: ''
+  }
+  if (user_data.length < 1) {
+    response.error = true;
+    response.msg = 'No user found.';
+    return api_response(res, 200, JSON.stringify(response));
+  }
+  let password = crypto.pbkdf2Sync(login_info.password, user_data[0].salt, 1000, 64, `sha512`).toString(`hex`);
+  if (password != user_data[0].password) {
+    response.error = true;
+    response.msg = 'Incorrect password.';
+  } else {
+    response.user_data = user_data[0];
+    let expire_date = new Date()
+    expire_date.setDate(expire_date.getDate() + 30);
+    let session_data = new DataBase('pantry-housekeeping').Table('sessions').insert({
+      user_id: user_data[0].id,
+      expires: expire_date
+    })
+    response.error = session_data.error;
+    response.session_id = session_data.id;
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+POST_routes['/api/logout'] = function(req_data, res) {
+  let success_msg = new DataBase('pantry-housekeeping').Table('sessions').delete(req_data.body);
+  api_response(res, 200, success_msg);
 }
 
 
