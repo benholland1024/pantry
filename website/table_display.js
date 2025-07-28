@@ -57,7 +57,7 @@ function render_table() {
 function get_editable_cell(column, row) {
   let id_attr = '';
   if (column.snakecase == 'id') { 
-    id_attr = `readonly value=${_selected_table.metadata.max_id + 1}`; 
+    id_attr = `readonly value=${_selected_table.metadata.max_id}`; 
   }
   return `<input type="text" id="i-${column.snakecase}" ${id_attr} placeholder="${column.name}..." value="${row[column.snakecase]}"/>`
 }
@@ -81,7 +81,7 @@ function render_row_creator() {
     //if (columns[j].snakecase == 'id') { continue; }
     let id_attr = '';
     if (columns[i].snakecase == 'id') { 
-      id_attr = `readonly value=${_selected_table.metadata.max_id + 1}`; 
+      id_attr = `readonly value=${_selected_table.metadata.max_id}`; 
     }
     cell = newRow.insertCell();
     cell.innerHTML = `<td><input type="text" id="i-${columns[i].snakecase}" ${id_attr} placeholder="${columns[i].name}..." /></td>`;
@@ -139,6 +139,7 @@ function add_row() {
       if (!response.error) {
         new_row.id = response.id;
         _selected_table.rows.push(new_row);
+        _selected_table.metadata.max_id++;
         render_table();
       } else {
         document.getElementById('error').innerHTML = response.msg;

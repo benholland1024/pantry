@@ -98,6 +98,21 @@ function render_table_maker() {
   document.getElementById('action-button-container').innerHTML = `<button onclick="save_new_table()">&#128190; Save table</button>`
 }
 
+function get_datatype_dropdown(value, id, on_change) {
+  return `
+    <select id="${id}" value="${value}" onchange="${on_change}">
+      <option value="string" ${value == 'string' ? 'selected' : ''}>String</option>
+      <option value="number" ${value == 'number' ? 'selected' : ''}>Number</option>
+      <option value="bool" ${value == 'bool' ? 'selected' : ''}>Boolean</option>
+      <option value="datetime" ${value == 'datetime' ? 'selected' : ''}>Datetime</option>
+      <option value="date" ${value == 'date' ? 'selected' : ''}>Date</option>
+      <option value="time" ${value == 'time' ? 'selected' : ''}>Time</option>
+      <option value="file" ${value == 'file' ? 'selected' : ''}>File</option>
+      <option value="bytes" ${value == 'bytes' ? 'selected' : ''}>Bytes</option>
+      <option value="fk" ${value == 'fk' ? 'selected' : ''}>Foreign Key</option>
+    </select>`;
+}
+
 //  Runs when you click the "Add a new column" button
 function render_column_creator() {
   //  Rerender table, deselect any selected row
@@ -124,19 +139,7 @@ function render_column_creator() {
   cell.innerHTML = `<td><input type="checkbox" id="i-required" /></td>`;
 
   cell = newRow.insertCell();
-  cell.innerHTML = `<td>
-    <select id="i-datatype">
-      <option value="string">String</option>
-      <option value="number">Number</option>
-      <option value="bool">Boolean</option>
-      <option value="datetime">Datetime</option>
-      <option value="date">Date</option>
-      <option value="time">Time</option>
-      <option value="file">File</option>
-      <option value="bytes">Bytes</option>
-      <option value="fk">Foreign Key</option>
-    </select>
-  </td>`;
+  cell.innerHTML = `<td>${get_datatype_dropdown('string', 'i-datatype')}</td>`;
 
   cell = newRow.insertCell();
   cell.innerHTML = `<div class="table-row-icon save-row-icon" onclick="add_column()">&#128190;</div>`; //  save icon

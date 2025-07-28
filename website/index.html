@@ -599,6 +599,8 @@
     select, option {
       background: var(--content-bg);
       color: white;
+      outline: none;
+      border: none;
     }
 
     /*********************************/
@@ -624,7 +626,7 @@
     }
     .schema-table {
       position: absolute;
-      width: 200px;
+      width: 250px;
       background: var(--content-bg-light1);
       box-sizing: border-box;
       box-shadow: var(--box-shadow);
@@ -637,8 +639,28 @@
     }
     .schema-table-column {
       margin: 5px 15px;
-      text-align: left;
+      display: flex;
+      justify-content: space-between;
       font-size: 0.8em;
+      position: relative;
+    }
+    .fk-input, .fk-output {
+      height: 14px;
+      top: 2px;
+      position: absolute;
+    }
+    .fk-input {
+      width: 7px;
+      background: rgb(68, 68, 66);
+      left: -22px;
+      border-radius: 7px 0px 0px 7px;
+    }
+    .fk-output {
+      width: 10px;
+      background: rgb(150, 133, 92);
+      right: -27px;
+      border-radius: 0px 7px 7px 0px;
+      cursor: grab;
     }
 
   </style>

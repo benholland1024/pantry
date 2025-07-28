@@ -6,37 +6,47 @@
     {
       "name": "Id",
       "snakecase": "id",
-      "unique": true
+      "unique": true,
+      "datatype": "string"
     },
     {
       "name": "Username",
       "snakecase": "username",
-      "unique": true
+      "unique": true,
+      "datatype": "string"
     },
     {
       "name": "Display Name",
       "snakecase": "display_name",
-      "unique": false
+      "unique": false,
+      "datatype": "string"
     },
     {
       "name": "Email",
       "snakecase": "email",
       "unique": true,
-      "required": false
+      "required": false,
+      "datatype": "string"
     },
     {
       "name": "Phone",
       "snakecase": "phone",
       "unique": true,
-      "required": false
+      "required": false,
+      "datatype": "string"
+
     },
     {
       "name": "Password hash",
-      "snakecase": "password"
+      "snakecase": "password",
+      "datatype": "string"
+
     },
     {
       "name": "Password salt",
-      "snakecase": "salt"
+      "snakecase": "salt",
+      "datatype": "string"
+
     }
   ]
 }
