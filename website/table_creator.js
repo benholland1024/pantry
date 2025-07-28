@@ -12,7 +12,7 @@ const column_data = [  //  All the properties used to define a table column
   ['Column snakecase', 'snakecase'],
   ['Unique?', 'unique'],
   ['Required?', 'required'],
-  ['Reference?', 'reference']
+  ['Datatype', 'datatype']
 ]
 
 //  Start the table_maker interface.
@@ -27,15 +27,17 @@ function boot_table_maker() {
           "snakecase": "id",
           "unique": true,
           "required": true,
-          "reference": false
+          "datatype": "string"
         },
       ]
     }
   }
+  _selected_row = {
+    id: -1
+  }
   unrender_all();
 
   render_table_maker(); //  Render the table. 
-  render_add_column();  //  Render the "new column" layout
   render_side_bar();
 }
 //  Go to the add table page
@@ -59,49 +61,90 @@ function render_table_maker() {
   });
 
   //  Render the table:
-  let table_maker_html = `<table>`;
-  table_maker_html += `<tr><th>Column name</th><th>Column snakecase</th><th>Unique?</th><th>Required?</th><th>Foreign key?</th></tr>`;
+  let table_maker_html = `<table id="table">`;
+  table_maker_html += `<tr>
+    <th>Column name</th>
+    <th>Column snakecase</th>
+    <th>Unique?</th>
+    <th>Required?</th>
+    <th>Datatype?</th>
+    <th class="table-row-icon"></th>
+    <th class="table-row-icon"></th>
+  </tr>`;
   ///  Rendering column data... as rows... don't get confused here. 
   let rows = _selected_table.metadata.columns;
   for (let i = 0; i < rows.length; i++) {
     let selected_class = 'class="selected-row"';
+    let selected = _selected_row.id == rows[i].id
     if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
     table_maker_html += `<tr onclick="render_column_editor(${i})" ${selected_class}>`;
     for (let j = 0; j < column_data.length; j++) {
       table_maker_html += `<td>${rows[i][column_data[j][1]]}</td>`;
     }
-    // table_string += `<td>&#9999; &nbsp; &#128465;</td>`;
+    if (selected) {
+      table_maker_html += `<td class="table-row-icon"><div class="save-row-icon" onclick="update_row(${i})">&#128190;</div></td>`  // save icon
+    } else {
+      table_maker_html += `<td class="table-row-icon"><div class="edit-row-icon" onclick="edit_row(${i})">&#x1F589;</div></td>`  // pencil icon
+    }
+    table_maker_html += `<td class="table-row-icon"><div class="delete-row-icon" onclick="delete_row(${i})">&#128465;</div></td>`; //trash icon  
     table_maker_html += `</tr>`;
   }
   table_maker_html += `</table><br/>`;
+  table_maker_html += `<button onclick="render_column_creator()" style="margin-top: 20px" id="new-row-btn">+ Add a new column</button>`
+
   document.getElementById('table-display').innerHTML = table_maker_html;
+
+  //  Render the button that says "Save Table"
+  document.getElementById('action-button-container').innerHTML = `<button onclick="save_new_table()">&#128190; Save table</button>`
 }
 
-//  Render the add column inputs
-function render_add_column() {
-  let columns = _selected_table.metadata.columns;
-  let add_row_html = '<div id="row-editor">';
-  add_row_html += '<h3>New row</h3>';
-  add_row_html += `<div class="row-input">Column name: <input type="text" id="i-name"></div>`;
-  add_row_html += `<div class="row-input" id="column-snakecase-display">Column snakecase: </div>`;
-  add_row_html += `<div class="row-input">Unique?: <input type="checkbox" id="i-unique"></div>`;
-  add_row_html += `<div class="row-input">Required?: <input type="checkbox" id="i-required"></div>`;
-  add_row_html += `<div class="row-input">Reference?: <input type="checkbox" id="i-reference"></div>`;
+//  Runs when you click the "Add a new column" button
+function render_column_creator() {
+  //  Rerender table, deselect any selected row
+  _selected_row = { id: -1 };
+  render_table_maker();
 
-  // for (let i = 0; i < column_data.length; i++) {
-  //   const input_types = ['text', 'text', 'checkbox', 'checkbox', 'checkbox'];
-  //   add_row_html += `<div class="row-input">${column_data[i][0]}: <input type="${input_types[i]}" id="i-${column_data[i][1]}"></div>`;
-    
-  // }
+  let newRow = document.getElementById('table').insertRow();
+  document.getElementById('new-row-btn').style.display = 'none';
 
-  add_row_html += `<div class="row-input"><button onclick="add_column()">Add column</button></div>`;
-  add_row_html += `</div>`;
-  document.getElementById('row-editor-container').innerHTML = add_row_html;
+  let cell = newRow.insertCell();
+  cell.innerHTML = `<td><input type="text" id="i-name" placeholder="Name..." /></td>`;
+
+  cell = newRow.insertCell();
+  cell.innerHTML = `<td><input type="text" id="i-snakecase" readonly /></td>`;
+
   document.getElementById('i-name').addEventListener('input', e => { 
-    document.getElementById('column-snakecase-display').innerHTML = `Column snakecase: ${to_snakecase(e.target.value)}`;
+    document.getElementById('i-snakecase').value = to_snakecase(e.target.value);
   });
-  document.getElementById('action-button-container').innerHTML = '<button id="save-new-table" onclick="save_new_table()">+ Save New Table</button>';
+
+  cell = newRow.insertCell();
+  cell.innerHTML = `<td><input type="checkbox" id="i-unique" /></td>`;
+
+  cell = newRow.insertCell();
+  cell.innerHTML = `<td><input type="checkbox" id="i-required" /></td>`;
+
+  cell = newRow.insertCell();
+  cell.innerHTML = `<td>
+    <select id="i-datatype">
+      <option value="string">String</option>
+      <option value="number">Number</option>
+      <option value="bool">Boolean</option>
+      <option value="datetime">Datetime</option>
+      <option value="date">Date</option>
+      <option value="time">Time</option>
+      <option value="file">File</option>
+      <option value="bytes">Bytes</option>
+      <option value="fk">Foreign Key</option>
+    </select>
+  </td>`;
+
+  cell = newRow.insertCell();
+  cell.innerHTML = `<div class="table-row-icon save-row-icon" onclick="add_column()">&#128190;</div>`; //  save icon
+  cell = newRow.insertCell();   
+  cell.innerHTML = `<div class="table-row-icon delete-row-icon" onclick="render_table_maker()">&#128465;</div>`; //  trash icon
+
 }
+
 
 function to_snakecase(str) {
   return str.toLowerCase().replaceAll(' ', '-')
@@ -114,9 +157,10 @@ function add_column() {
   let new_column = {};
   for (let i = 0; i < column_data.length; i++) {
     let input = document.getElementById("i-" + column_data[i][1]);
+    console.log(column_data[i][1])
     if (column_data[i][1] == 'snakecase') {
       new_column.snakecase = to_snakecase(new_column.name);
-    } else if (input.type == 'text') {
+    } else if (input.type == 'text' || input.id == 'i-datatype') {
       new_column[column_data[i][1]] = input.value;
     } else if (input.type == 'checkbox') {
       new_column[column_data[i][1]] = input.checked;

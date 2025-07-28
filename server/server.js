@@ -185,7 +185,7 @@ GET_routes['/api/all-databases'] = function(data, res) {
   api_response(res, 200, JSON.stringify(db_names));
 }
 
-//  Get all tables from a database. 
+//  Get all table names from a database. 
 //    Param: /api/all-table-names?username=my-username?database=dogs
 GET_routes['/api/all-table-names'] = function(data, res) {
   let table_names = [];
@@ -197,7 +197,28 @@ GET_routes['/api/all-table-names'] = function(data, res) {
   for (let i = 0; i < table_names.length; i++) {
     table_names[i] = path.parse(table_names[i]).name;
   }
-  api_response(res, 200, JSON.stringify(table_names));
+  api_response(res, 200, JSON.stringify(table_names));  //  Remove extensions
+}
+
+//  Get all table metadata from a database. 
+//    Param: /api/all-table-metadata?username=my-username?database=dogs
+GET_routes['/api/all-table-metadata'] = function(data, res) {
+  let table_names = [];
+  let table_metadata = [];
+  try {
+    table_names = fs.readdirSync(`${__dirname}/databases/${data.username}/${data.database}/metadata`);
+  } catch (err) {
+    //  No tables in that db
+  }
+  for (let i = 0; i < table_names.length; i++) {
+    try {
+      let metadata = fs.readFileSync(`${__dirname}/databases/${data.username}/${data.database}/metadata/${table_names[i]}`);
+      table_metadata.push(JSON.parse(metadata));
+    } catch (err) {
+      //  No tables in that db
+    }
+  }
+  api_response(res, 200, JSON.stringify(table_metadata));
 }
 
 //  Get one or more tables from a given database. 

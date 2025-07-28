@@ -6,7 +6,7 @@
 //  Render the table
 function render_table() {
   window.history.pushState({ },"", `/database/${_selected_db.name}/table/${_selected_table.metadata.snakecase}`);
-
+  unrender_all();
   document.getElementById('top-bar-title').innerHTML = `Table name: <b>${_selected_table.metadata.name}</b>`;
   document.getElementById('landing').style.display = 'none';
   let table_string = `<table id="table"><tr>`

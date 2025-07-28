@@ -61,13 +61,14 @@
   <script src="/table_creator.js"></script>
   <script src="/table_display.js"></script>
   <script src="/db_creator.js"></script>
-
+  <script src="/db_display.js"></script>
 
   <script>
 
     //  GLOBAL DATA
     let _db_list =   [];                                     //  List of all database names.
     let _selected_db = { name: '' };                         //  The currently selected database.
+    let _schema_data = [];                                   //  A list of table objects in the schema. 
     let _table_list = [];                                    //  List of table NAMES belonging to the selected DB. 
     let _selected_table = {};                                //  Current selected table obj
     let _selected_row = {};                                  //  Current selected table row.
@@ -108,6 +109,7 @@
     //  Unrenders all div content.  Used before rendering a new "page".
     function unrender_all() {
       document.getElementById('table-display').innerHTML = "";
+      document.getElementById('schema-display').innerHTML = "";
       document.getElementById('row-editor-container').innerHTML = "";
       document.getElementById('action-button-container').innerHTML = "";
       document.getElementById('landing').style.display = 'none';
@@ -122,14 +124,6 @@
       document.getElementById('top-bar-title').innerHTML = '<h1>DataPantry</h1>'
       document.getElementById('landing').style.display = 'block';
     }
-
-    function boot_db_maker() {
-      document.getElementById('table-display').innerHTML = "";
-      document.getElementById('row-editor-container').innerHTML = "";
-      document.getElementById('action-button-container').innerHTML = "";
-
-    }
-    
 
     ////
     ////  RENDER user auth
@@ -188,8 +182,7 @@
         return;  
       }
       open_auth_box = 'user-options';
-      let auth_input_html = '<div id="auth-input-box" style="height:100px"><h3>Hi! </h3>';
-      auth_input_html += `<div>Username: ${_current_user.username} </div><br/>`;
+      let auth_input_html = '<div id="auth-input-box" style="height:100px; min-height: 100px;">';
       auth_input_html += '<div><button onclick="logout()">Log out</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_user_options()">Close</button></div>';
 
       auth_input_html += '</div>';
@@ -263,9 +256,8 @@
         if (!response.error) {
           _table_list = response;
           render_side_bar();
-          //  Load the first table on startup, if it exists
           if (_table_list && _table_list.length) { 
-            load_table(_table_list[0]);  
+            load_schema();
           }  else if (_table_list.length === 0) {
             boot_table_maker();
           }
@@ -273,11 +265,6 @@
           document.getElementById('error').innerHTML = response.msg;
         }
       });
-    }
-
-    //  Render a database diagram 
-    function render_db_diagram() {
-
     }
 
     function register() {
@@ -580,31 +567,8 @@
       margin: 0px auto;
       padding: 30px 0px;
       width: 95%;
-
     }
 
-    /*  Selected row / row editor */
-    #row-editor {
-      margin: auto;
-      width: 400px;
-      background: var(--content-bg-light1);
-      padding: 20px;
-      box-sizing: border-box;
-      box-shadow: var(--box-shadow);
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-    }
-    #row-editor h3 {
-      margin: 0px;
-      padding: 0px;
-      padding-bottom: 10px;
-    }
-    #row-editor .row-input {
-      display: flex;
-      justify-content: space-between;
-      margin: 5px 0px;
-    }
     input {
       background: var(--content-bg-light3);
       color: white;
@@ -623,16 +587,18 @@
       cursor: pointer;
 
     }
-    #row-editor #delete {
-      background: var(--red-bg);
-      cursor: pointer;
-    }
+
 
     /* Button to create a new row.   */
     #action-button-container {
       position: absolute;
       bottom: 20px;
       right: 20px;
+    }
+
+    select, option {
+      background: var(--content-bg);
+      color: white;
     }
 
     /*********************************/
@@ -648,6 +614,31 @@
       margin-top: 5px;
       opacity: 0.5;
       font-size: 0.9em;
+    }
+
+    /*********************************/
+    /*        Schema editor          */
+    /*********************************/
+    #schema-display {
+      position: relative;
+    }
+    .schema-table {
+      position: absolute;
+      width: 200px;
+      background: var(--content-bg-light1);
+      box-sizing: border-box;
+      box-shadow: var(--box-shadow);
+    }
+    .schema-table-name {
+      background: var(--content-bg-light2);
+      margin: 0px;
+      padding: 10px 15px;
+      cursor: grab;
+    }
+    .schema-table-column {
+      margin: 5px 15px;
+      text-align: left;
+      font-size: 0.8em;
     }
 
   </style>
