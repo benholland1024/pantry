@@ -1,6 +1,6 @@
 {
   "name": "Fruit",
-  "max_id": 0,
+  "max_id": 2,
   "columns": [
     {
       "name": "Id",

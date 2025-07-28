@@ -1,7 +1,7 @@
 {
   "name": "Sessions",
   "snakecase": "sessions",
-  "max_id": 15,
+  "max_id": 17,
   "columns": [
     {
       "name": "Id",

@@ -94,11 +94,11 @@ class Table {
       msg: '',
       id: null
     }
+    row_data.id = this.metadata.max_id;
     response = this._check_for_unique_and_required(row_data, -1);
     if (response.error) {
       return response;
     }
-    row_data.id = this.metadata.max_id;
     response.id = row_data.id;
     this.metadata.max_id++;
     this.rows.push(row_data);

@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "name": "Banana!",
+    "color": "yellow",
+    "id": 0
+  },
+  {
+    "id": 1,
+    "name": "apple",
+    "color": "red"
+  }
+]

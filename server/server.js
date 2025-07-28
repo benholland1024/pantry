@@ -226,39 +226,42 @@ GET_routes['/api/user-by-session'] = function(params, res) {
 
 
 //  Insert a row into a table.  
-//    Param: /api/insert?db_name=my-db&table_name=my-table
+//    Param: /api/insert?username=my-username&db_name=my-db&table_name=my-table
 //    Data:  An object with row data. 
 POST_routes['/api/insert'] = function(data, res) {
+  let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
   delete data._params;
   console.log(data);
-  let response = new DataBase(db_name).Table(table_name).insert(data);
+  let response = new DataBase(username, db_name).Table(table_name).insert(data);
   api_response(res, 200, JSON.stringify(response));
 }
 
 //  Update a row in a table.  
-//    Param: /api/insert?db_name=my-db&table_name=my-table&id=26
+//    Param: /api/insert?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  An object with row data. 
 POST_routes['/api/update'] = function(data, res) {
+  let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
   let row_id = data._params.id;
   delete data._params;
   console.log("Updating:");
   console.log(data);
-  let response = new DataBase(db_name).Table(table_name).update(row_id, data);
+  let response = new DataBase(username, db_name).Table(table_name).update(row_id, data);
   api_response(res, 200, JSON.stringify(response));
 }
 
 //  Delete a row from a table.  
-//    Param: /api/insert?db_name=my-db&table_name=my-table&id=26
+//    Param: /api/delete?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  None
 POST_routes['/api/delete'] = function(data, res) {
+  let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
   let row_id = data._params.id;
-  let response = new DataBase(db_name).Table(table_name).delete(row_id);
+  let response = new DataBase(username, db_name).Table(table_name).delete(row_id);
   api_response(res, 200, JSON.stringify(response));
 }
 
