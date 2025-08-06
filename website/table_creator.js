@@ -1,11 +1,11 @@
 ////
-////  TABLE MAKER / EDITOR 
+////  TABLE MAKER  
 ////
-//      Edit a table, including:
+//      Make a table, including:
 //       - Table name / snakecase
 //       - Table columns
 
-
+let _edit_mode = false;
 
 const column_data = [  //  All the properties used to define a table column
   ['Column name', 'name'],
@@ -40,6 +40,15 @@ function boot_table_maker() {
   render_table_maker(); //  Render the table. 
   render_side_bar();
 }
+
+//  Load this page to edit a table
+function edit_table() {
+  unrender_all();
+
+  render_table_maker(); //  Render the table. 
+  render_side_bar();
+}
+
 //  Go to the add table page
 function render_table_maker() {
   window.history.pushState({ },"", `/database/${_selected_db.name}/create-table`);
@@ -98,9 +107,20 @@ function render_table_maker() {
   document.getElementById('action-button-container').innerHTML = `<button onclick="save_new_table()">&#128190; Save table</button>`
 }
 
-function get_datatype_dropdown(value, id, on_change) {
+//  Returns HTML for a dropdown list of datatypes. 
+//   Used in table_editor.js and db_editor.js
+function get_datatype_dropdown(value, id, on_change, disabled) {
+  let foreign_key_opts = ``;
+
+  // if (value.split('-')[0] == 'fk') {
+  //   console.log(value);
+  // }
+  //  Get the foreign key value options
+  for (let i = 0; i < _table_list.length; i++) {
+    foreign_key_opts += `<option value="fk-${i}" ${value == `fk-${i}` ? 'selected' : ''}>FK from: <b>${ _table_list[i] }</b></option>`
+  }
   return `
-    <select id="${id}" value="${value}" onchange="${on_change}">
+    <select id="${id}" value="${value}" onchange="${on_change}" ${disabled ? 'disabled' : ''}>
       <option value="string" ${value == 'string' ? 'selected' : ''}>String</option>
       <option value="number" ${value == 'number' ? 'selected' : ''}>Number</option>
       <option value="bool" ${value == 'bool' ? 'selected' : ''}>Boolean</option>
@@ -109,7 +129,8 @@ function get_datatype_dropdown(value, id, on_change) {
       <option value="time" ${value == 'time' ? 'selected' : ''}>Time</option>
       <option value="file" ${value == 'file' ? 'selected' : ''}>File</option>
       <option value="bytes" ${value == 'bytes' ? 'selected' : ''}>Bytes</option>
-      <option value="fk" ${value == 'fk' ? 'selected' : ''}>Foreign Key</option>
+      <option disabled>Foreign Keys:</option>
+      ${foreign_key_opts}
     </select>`;
 }
 
@@ -139,13 +160,24 @@ function render_column_creator() {
   cell.innerHTML = `<td><input type="checkbox" id="i-required" /></td>`;
 
   cell = newRow.insertCell();
-  cell.innerHTML = `<td>${get_datatype_dropdown('string', 'i-datatype')}</td>`;
+  cell.innerHTML = `<td>${get_datatype_dropdown('string', 'i-datatype', 'update_column_datatype()')}</td>`;
 
   cell = newRow.insertCell();
   cell.innerHTML = `<div class="table-row-icon save-row-icon" onclick="add_column()">&#128190;</div>`; //  save icon
   cell = newRow.insertCell();   
   cell.innerHTML = `<div class="table-row-icon delete-row-icon" onclick="render_table_maker()">&#128465;</div>`; //  trash icon
 
+}
+
+//  Function to update column datatype.  Specifically, to handle foreign key selection. 
+function update_column_datatype() {
+  let datatype = document.getElementById('i-datatype').value;
+  if (datatype.split('-')[0] == 'fk') { //  If a foreign key was selected...
+    _selected_row.datatype = 'fk',
+    _selected_row.fk_input_dest = Number(datatype.split('-')[1])
+  } else {
+    _selected_row.datatype = datatype;
+  }
 }
 
 
@@ -160,7 +192,6 @@ function add_column() {
   let new_column = {};
   for (let i = 0; i < column_data.length; i++) {
     let input = document.getElementById("i-" + column_data[i][1]);
-    console.log(column_data[i][1])
     if (column_data[i][1] == 'snakecase') {
       new_column.snakecase = to_snakecase(new_column.name);
     } else if (input.type == 'text' || input.id == 'i-datatype') {

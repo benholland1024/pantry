@@ -43,7 +43,8 @@
           This is a dependency-less project written in NodeJS, if that's your thing. 
         </i></p>
         <br/>
-        <button onclick="render_register_input()">Register to create your first database!</button>
+        <button onclick="render_register_input()" id="landing-reg-btn">Register to create your first database!</button>
+        <button onclick="boot_side_bar();" id="landing-dash-btn">Go to your dashboard!</button>
       </div>
 
       <!-- Table display stuff -->
@@ -52,16 +53,21 @@
       <div id="action-button-container"><!--  Insert button here, like "New Row" etc  --></div>
 
       <!--  Schema display stuff  -->
-      <div id="schema-display"><!--  Insert schema diagram here  --></div>
+      <div id="schema-display-container">
+        <div id="svg-display"><!--  Insert svgs here --></div>
+        <div id="schema-display"><!--  Insert schema diagram here  --></div>
+      </div>
 
     </div>
 
   </body>
   
   <script src="/table_creator.js"></script>
-  <script src="/table_display.js"></script>
+  <script src="/table_editor.js"></script>
+
+  <script src="/row_editor.js"></script>
+  <script src="/db_editor.js"></script>
   <script src="/db_creator.js"></script>
-  <script src="/db_display.js"></script>
 
   <script>
 
@@ -72,9 +78,10 @@
     let _table_list = [];                                    //  List of table NAMES belonging to the selected DB. 
     let _selected_table = {};                                //  Current selected table obj
     let _selected_row = {};                                  //  Current selected table row.
-    let _session_id = localStorage.getItem('session_id');   //  User auth session id
+    let _session_id = localStorage.getItem('session_id');    //  User auth session id
     let _current_user = {};
-    const http = new XMLHttpRequest();                      //  Used for HTTP requests
+    let _event_listeners = { onmousedown: () => {} }         //  Stores event listener functions, so they can be removed.
+    const http = new XMLHttpRequest();                       //  Used for HTTP requests
 
     let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
 
@@ -82,7 +89,6 @@
     //  BOOT
     function boot() {
        
-      console.log(_session_id)
       //  If the user isn't logged in...
       if (_session_id) {
         http.open('GET', `/api/user-by-session?session_id=${_session_id}`);
@@ -108,18 +114,31 @@
 
     //  Unrenders all div content.  Used before rendering a new "page".
     function unrender_all() {
+      document.removeEventListener('mousedown', _event_listeners.mousedown);
+      document.removeEventListener('mouseup', _event_listeners.mouseup);
+      document.removeEventListener('mousemove', _event_listeners.mousemove);
+      document.removeEventListener('wheel', _event_listeners.wheel);
       document.getElementById('table-display').innerHTML = "";
       document.getElementById('schema-display').innerHTML = "";
+      document.getElementById('schema-display-container').style.display = "none";
       document.getElementById('row-editor-container').innerHTML = "";
       document.getElementById('action-button-container').innerHTML = "";
       document.getElementById('landing').style.display = 'none';
+
     }
 
     function render_landing() {
+      window.history.pushState({ },"", `/`);
       unrender_all();
       minimize_side_bar();
       if (!_current_user.username) {
         render_login_buttons();
+        document.getElementById('landing-reg-btn').style.display = 'block';
+        document.getElementById('landing-dash-btn').style.display = 'none';
+      } else {
+        render_user_profile_button();
+        document.getElementById('landing-reg-btn').style.display = 'none';
+        document.getElementById('landing-dash-btn').style.display = 'block';
       }
       document.getElementById('top-bar-title').innerHTML = '<h1>DataPantry</h1>'
       document.getElementById('landing').style.display = 'block';
@@ -164,6 +183,7 @@
       auth_input_html += '<div>Display name: <input id="display-name"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
       auth_input_html += '<div>Confirm pass: <input id="confirm-pass" type="password" /></div><br/>';
+      auth_input_html += `<div id="auth-error"><!--  Insert errors here  --></div>`;
       auth_input_html += '<div><button onclick="register()">Register</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
 
       auth_input_html += '</div>';
@@ -227,7 +247,8 @@
             if (_selected_table.metadata && _table_list[j] == _selected_table.metadata.snakecase) {  selected_class = 'selected';  }
             document.getElementById('db-list').innerHTML += `<div class="table-name ${selected_class}" onclick="load_table('${_table_list[j]}')">${_table_list[j]}</div>`;
           }
-          document.getElementById('db-list').innerHTML += `<div class="create-new-table" onclick="boot_table_maker()">+ Create a table</div>`;
+          selected_class = window.location.pathname.split('/')[3] == 'create-table' ? 'selected' : '';
+          document.getElementById('db-list').innerHTML += `<div class="create-new-table ${selected_class}" onclick="boot_table_maker()">+ Create a table</div>`;
         }
       }
       document.getElementById('db-list').innerHTML += `<div class="create-new-database" onclick="create_db()">+ Create a database</div>`;
@@ -269,11 +290,19 @@
 
     function register() {
       let username = document.getElementById('username').value;
+      let display_name = document.getElementById('display-name').value;
       let password = document.getElementById('pass').value;
+      let confirm = document.getElementById('confirm-pass').value;
+      if (password != confirm) {
+        document.getElementById('auth-error').innerHTML = `Passwords must match`;
+        return;
+      }
+
       http.open('POST', '/api/register');
       http.send(JSON.stringify({
         username: username,
-        password
+        password,
+        display_name
       }));
       http.onreadystatechange = (e) => {
         let response;      
@@ -288,8 +317,10 @@
             boot_side_bar();
             render_user_profile_button();  //  Close the register popup.
             open_auth_box = 'none';  //  Mark the register popup as closed.
+          } else if (response.msg == 'Username must be unique.') {
+            document.getElementById('auth-error').innerHTML = `The username "${username}" is already taken. Sorry!`;
           } else {
-            document.getElementById('error').innerHTML = response.msg;
+            document.getElementById('auth-error').innerHTML = response.msg;
           }
         }
       }
@@ -466,6 +497,7 @@
     /*  Log in   */
     #user-auth {
       display: relative;
+      z-index: 3;
     }
     #auth-input-box {
       position: absolute;
@@ -482,6 +514,10 @@
       padding: 15px;
       box-sizing: border-box;
     }
+    #auth-error {
+      color: red;
+      padding-bottom: 4px;
+    }
 
     /*  Landing  */
     #landing {
@@ -491,6 +527,9 @@
     }
     #landing img {
       margin-top: 100px;
+    }
+    #landing button {
+      margin: 0px auto;
     }
 
 
@@ -621,8 +660,17 @@
     /*********************************/
     /*        Schema editor          */
     /*********************************/
-    #schema-display {
+    #schema-display-container {
       position: relative;
+      overflow: hidden;
+      height: calc(100vh - 80px);
+    }
+    #schema-display  {
+      position: relative;
+      height: calc(100vh - 80px);
+    }
+    body {
+      overflow: hidden;
     }
     .schema-table {
       position: absolute;
@@ -654,6 +702,7 @@
       background: rgb(68, 68, 66);
       left: -22px;
       border-radius: 7px 0px 0px 7px;
+      transition-duration: 0.5s;
     }
     .fk-output {
       width: 10px;
@@ -661,6 +710,16 @@
       right: -27px;
       border-radius: 0px 7px 7px 0px;
       cursor: grab;
+    }
+    .connected-input {
+      cursor: grab;
+      background: rgb(202, 202, 202);
+    }
+    .cursor-grabbing {
+      cursor: grabbing;
+    }
+    .cursor-grabbing * {
+      cursor: grabbing;
     }
 
   </style>

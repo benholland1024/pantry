@@ -51,6 +51,9 @@ function render_table() {
   }
   table_string += `<button onclick="render_row_creator()" style="margin-top: 20px" id="new-row-btn">+ Add a new row</button>`
   document.getElementById('table-display').innerHTML = table_string;
+
+  //  Render the button that says "Edit table metadata"
+  document.getElementById('action-button-container').innerHTML = `<button onclick="boot_table_editor()">&#x1F589; Edit table metadata</button>`
 }
 
 //
