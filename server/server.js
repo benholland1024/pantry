@@ -168,7 +168,7 @@ function api_routes(url, req, res) {
     } else if (req.method == "POST" && typeof POST_routes[url] == 'function') {
       POST_routes[url](req_data, res);
     } else {
-      console.log("404 here??")
+      console.log(`The ${req.method} API route ${url} does not exist.`);
       api_response(res, 404, `The ${req.method} API route ${url} does not exist.`);
     }
 
@@ -329,6 +329,67 @@ POST_routes['/api/create-db'] = function(data, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
+//  Update a database
+//    Param: /api/update-db?username=my-username&db_name=my-db
+//    Data: An array of tables
+POST_routes['/api/update-db'] = function(data, res) {
+  let updated_tables = JSON.parse(data.body);
+  let username = data._params.username;
+  let db_name = data._params.db_name;
+  let response = {};
+
+  try {
+    //  Step 1: Get all existing tables in this DB
+    let existing_table_names = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
+    console.log(path.parse(existing_table_names[0]).name)
+
+    //  Step 2:  Iterate through existing tables.  Update those that need it.  Track which tables are seen in both lists.
+    for (let i = 0; i < existing_table_names.length; i++) {
+      for (let j = 0; j < updated_tables.length; j++) {
+        if (path.parse(existing_table_names[i]).name == updated_tables[j].snakecase) {
+          existing_table_names.splice(i,1); //  Remove existing name if it will be updated.
+          //  Update the table
+          fs.writeFileSync(
+            `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[j].snakecase}.json`, 
+            JSON.stringify(updated_tables[j])
+          );
+          updated_tables.splice(j,1);       //  Remove updated data once it's been updated.
+        }
+      }
+    }
+
+    //  Step 3: Any table names remaining in "existing_table_names" need to be deleted, 
+    //   since they weren't in our "updated_tables".
+    for (let i = 0; i < existing_table_names.length; i++) {
+      fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/rows/${existing_table_names[i]}`);
+      fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/metadata/${existing_table_names[i]}`);
+    }
+
+    //  Step 4: Any tables remaining in "updated_tables" need to be created. 
+    for (let i = 0; i < updated_tables.length; i++) {
+      fs.writeFileSync(
+        `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[i].snakecase}.json`, 
+        JSON.stringify(updated_tables[i]), 
+        null, 2
+      );
+      fs.writeFileSync(
+        `${__dirname}/databases/${username}/${db_name}/rows/${updated_tables[i].snakecase}.json`, 
+        '[]', 
+        null, 2
+      );
+    }
+
+  } //  End try
+  catch (err) {
+    response.error = true;
+    response.msg = err;
+    console.log(err);
+  }
+
+  api_response(res, 200, JSON.stringify([]));
+
+}
+
 //  Register a new user. 
 //    Param: /api/register
 //    Data: { username, password }
@@ -348,11 +409,19 @@ POST_routes['/api/register'] = function(new_user, res) {
     })
     response.error = new_session_response.error;
     response.session_id = new_session_response.id;
-    fs.mkdirSync(`${__dirname}/databases/${new_user.username}`); //  Create the user's databse folder.
+    try {
+      fs.mkdirSync(`${__dirname}/databases/${new_user.username}`); //  Create the user's databse folder.
+    } catch (err) {
+      console.log("api/register");
+      console.log(err);
+    }
   }
   api_response(res, 200, JSON.stringify(response));
 }
 
+//  Log a user in.
+//    Param: /api/login
+//    Data: { username, password }
 POST_routes['/api/login'] = function(login_info, res) {
   let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ username: login_info.username });
   let response = {
@@ -384,9 +453,107 @@ POST_routes['/api/login'] = function(login_info, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
+//  Log a user out.
+//    Param: /api/logout
+//    Data: session_id
 POST_routes['/api/logout'] = function(req_data, res) {
   let success_msg = new DataBase('admin', 'pantry-housekeeping').Table('sessions').delete(req_data.body);
   api_response(res, 200, success_msg);
+}
+
+//  Change a user's password.
+//    Param: /api/update-password
+//    Data: { user_id, old_pass, new_pass }
+POST_routes['/api/update-password'] = function(password_update, res) {
+  let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ id: password_update.user_id });
+  let response = {
+    error: false,
+    msg: '',
+  }
+  if (user_data.length < 1) {
+    response.error = true;
+    response.msg = 'No user found.';
+    return api_response(res, 200, JSON.stringify(response));
+  }
+  let password = crypto.pbkdf2Sync(password_update.old_pass, user_data[0].salt, 1000, 64, `sha512`).toString(`hex`);
+  let new_pass = '';
+  if (password != user_data[0].password) {
+    response.error = true;
+    response.msg = 'Incorrect password.';
+  } else {
+    new_pass = crypto.pbkdf2Sync(password_update.new_pass, user_data[0].salt, 1000, 64, `sha512`).toString(`hex`);
+  }
+
+  if (!response.error) {
+    response.updated_user = new DataBase('admin', 'pantry-housekeeping').Table('users').update(password_update.user_id, {password: new_pass});
+    if (response.updated_user == null) {
+      response.error = true;
+      response.msg = `No user found for session ${password_update.user_id}.`
+    }
+  }
+
+  api_response(res, 200, JSON.stringify(response));
+}
+
+//  Used for delete-account.  This is used bc older versions of nodejs don't have fs.rmSync
+function deleteDirectoryRecursive(directoryPath) {
+  if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file) => {
+      const currentPath = path.join(directoryPath, file);
+      if (fs.lstatSync(currentPath).isDirectory()) {
+        // Recurse for subdirectories
+        deleteDirectoryRecursive(currentPath);
+      } else {
+        // Delete files
+        fs.unlinkSync(currentPath);
+      }
+    });
+    // Delete the now empty directory
+    fs.rmdirSync(directoryPath);
+    console.log(`Directory ${directoryPath} removed.`);
+  } else {
+    console.log(`Directory ${directoryPath} does not exist.`);
+  }
+}
+
+//  Delete a user's account.
+//    Param: /api/delete-account
+//    Data: { user_id, pass }
+POST_routes['/api/delete-account'] = function(data, res) {
+  let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ id: data.user_id });
+  let response = {
+    error: false,
+    msg: '',
+  }
+  if (user_data.length < 1) {
+    response.error = true;
+    response.msg = 'No user found.';
+    return api_response(res, 200, JSON.stringify(response));
+  }
+  let password = crypto.pbkdf2Sync(data.pass, user_data[0].salt, 1000, 64, `sha512`).toString(`hex`);
+  if (password != user_data[0].password) {
+    response.error = true;
+    response.msg = 'Incorrect password.';
+  }
+
+  if (!response.error) {
+    response.updated_user = new DataBase('admin', 'pantry-housekeeping').Table('users').delete(data.user_id);
+    if (response.updated_user == null) {
+      response.error = true;
+      response.msg = `No user found for session ${data.user_id}.`
+    } else {
+      try {
+        deleteDirectoryRecursive(`${__dirname}/databases/${user_data[0].username}`, { recursive: true, force: true });
+      } catch(err) {
+        response.error = true;
+        response.msg = err.msg;
+        console.log("Acct not deleted");
+        console.log(err);
+      }
+    }
+  }
+
+  api_response(res, 200, JSON.stringify(response));
 }
 
 

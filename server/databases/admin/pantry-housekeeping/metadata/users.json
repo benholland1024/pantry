@@ -1,7 +1,7 @@
 {
   "name": "Users",
   "snakecase": "users",
-  "max_id": 12,
+  "max_id": 21,
   "columns": [
     {
       "name": "Id",
@@ -34,19 +34,16 @@
       "unique": true,
       "required": false,
       "datatype": "string"
-
     },
     {
       "name": "Password hash",
       "snakecase": "password",
       "datatype": "string"
-
     },
     {
       "name": "Password salt",
       "snakecase": "salt",
       "datatype": "string"
-
     }
   ]
 }

@@ -25,5 +25,15 @@
     },
     "salt": "71833e94cfb8913dafda731620cce702",
     "id": 11
+  },
+  {
+    "username": "test3",
+    "password": "1bcfa8d47054a47dab8b9c5cec1ef46cc9ace6b9664d3ba763c629d1dfe928c45b6e36bac605f8c2e7c23501d9e919f98d698f16d542b39db0bf3842a769d157",
+    "display_name": "test3",
+    "_params": {
+      "_url": "/api/register"
+    },
+    "salt": "32b2539d5951587219a94423038dbaa7",
+    "id": 20
   }
 ]

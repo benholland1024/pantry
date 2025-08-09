@@ -13,7 +13,7 @@
     <!--  Side bar  -->
     <!---------------->
     <div id="side-bar">
-      <h1 id="side-bar-title" onclick="render_landing()">&#129387; DataPantry </h1>
+      <h1 id="side-bar-title" onclick="load_dashboard()">&#129387; DataPantry </h1>
       <h3 id="side-bar-subtitle">your databases:</h3>
       <div id="db-list"><!-- Insert table names here --></div>
     </div>
@@ -47,6 +47,50 @@
         <button onclick="boot_side_bar();" id="landing-dash-btn">Go to your dashboard!</button>
       </div>
 
+      <!--  Dashboard  -->
+      <div id="dashboard">
+        <div id="api-code-container">
+          <h4>Your API key:</h4>
+          <pre>
+<span class="pink">Pantry</span>.<span class="yellow">config</span>({
+  <span class="yellow">user</span>: <span class="blue">'admin'</span>,
+  <span class="yellow">key</span>: <span class="blue">'ajv4jv24n.13jk;i08vzuo!uoh'</span>
+})</pre>
+          <button style="font-size: 0.8em">Copy this code!</button>
+        </div>
+        <div id="dash-db-list-container">
+          <h4>Your databases:</h4>
+          <div id="dash-db-list">
+            <div class="dash-db dash-db-empty"><br/>+ Create a Database</div>
+          </div>
+        </div>
+      </div>
+
+      <!--  User settings  -->
+      <div id="user-settings">
+        <div class="user-settings-input">Username: <input id="username-settings" readonly/></div>
+        <div class="user-settings-input">Display name: <input id="display-name-settings" readonly placeholder="No display name"/></div>
+        <hr/>
+        <h4>Change your password:</h4>
+        <div class="user-settings-input">Current password: <input type="password" id="current-password-settings"/></div>
+        <div class="user-settings-input">New password: <input type="password" id="new-password-settings"/></div>
+        <div class="user-settings-input">Confirm new password: <input type="password" id="confirm-new-password-settings"/></div>
+        <div class="user-settings-input" id="settings-error" style="color:var(--error-red);"><!--  Insert error text here  --></div>
+        <div class="user-settings-input" id="settings-success" style="color:var(--success-green);"><!--  Insert error text here  --></div>
+        <button onclick="update_password()">Update password</button>
+        <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><hr/>
+        <h4>The danger zone:</h4>
+        <p>Confirm your password to delete your account: </p>
+        <input type="password" id="confirm-pass-to-delete-acct"/>
+        <p>Type your username to delete your account: </p>
+        <input type="text" id="confirm-username-to-delete-acct" placeholder="Confirm your username"/>
+        <div class="user-settings-input" id="delete-acct-error" style="color:var(--error-red);"><!--  Insert error text here  --></div>
+        <button onclick="delete_account()" style="background: var(--red-bg)">Delete your account</button>
+
+
+
+      </div>
+
       <!-- Table display stuff -->
       <div id="table-display"><!-- Insert table and controls here  --></div>
       <div id="row-editor-container"><!--  Insert row editor here  --></div>
@@ -64,7 +108,8 @@
   
   <script src="/table_creator.js"></script>
   <script src="/table_editor.js"></script>
-
+  <script src="/dashboard.js"></script>
+  <script src="/settings.js"></script>
   <script src="/row_editor.js"></script>
   <script src="/db_editor.js"></script>
   <script src="/db_creator.js"></script>
@@ -83,6 +128,8 @@
     let _event_listeners = { onmousedown: () => {} }         //  Stores event listener functions, so they can be removed.
     const http = new XMLHttpRequest();                       //  Used for HTTP requests
 
+    const _utility_keys = [8, 9, 39, 37, 224];               //  Used for input validation. Backspace, tab, command, arrow keys
+
     let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
 
 
@@ -98,6 +145,7 @@
             _current_user = JSON.parse(http.responseText);
             boot_side_bar();
             render_user_profile_button();
+            routing();
           } else if (http.readyState == 4 && http.status == 404) {
             console.log('No session found.');
             localStorage.removeItem('session_id');
@@ -112,6 +160,10 @@
     }
     boot();
 
+    function routing() {
+      load_dashboard();
+    }
+
     //  Unrenders all div content.  Used before rendering a new "page".
     function unrender_all() {
       document.removeEventListener('mousedown', _event_listeners.mousedown);
@@ -124,6 +176,8 @@
       document.getElementById('row-editor-container').innerHTML = "";
       document.getElementById('action-button-container').innerHTML = "";
       document.getElementById('landing').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('user-settings').style.display = 'none';
 
     }
 
@@ -132,12 +186,12 @@
       unrender_all();
       minimize_side_bar();
       if (!_current_user.username) {
-        render_login_buttons();
-        document.getElementById('landing-reg-btn').style.display = 'block';
-        document.getElementById('landing-dash-btn').style.display = 'none';
+        render_auth_buttons();
+        document.getElementById('landing-reg-btn').style.display = 'block'; //  Action btn on landing page
+        document.getElementById('landing-dash-btn').style.display = 'none'; 
       } else {
         render_user_profile_button();
-        document.getElementById('landing-reg-btn').style.display = 'none';
+        document.getElementById('landing-reg-btn').style.display = 'none';  //  Action btn on landing page
         document.getElementById('landing-dash-btn').style.display = 'block';
       }
       document.getElementById('top-bar-title').innerHTML = '<h1>DataPantry</h1>'
@@ -147,16 +201,18 @@
     ////
     ////  RENDER user auth
     ////
-    function render_login_buttons() {
+    function render_auth_buttons() {
       //  Rendering login and register buttons
-      document.getElementById('user-auth').innerHTML = '<button onclick="render_login_input()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;';
+      document.getElementById('user-auth').innerHTML = `<div>`;
+      document.getElementById('user-auth').innerHTML += '<button onclick="render_login_input()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;';
       document.getElementById('user-auth').innerHTML += '<button onclick="render_register_input()">Register</button>';
+      document.getElementById('user-auth').innerHTML += `</div>`;
 
     }
 
     function render_login_input() {
       if (open_auth_box == 'login') { 
-        render_login_buttons();  
+        render_auth_buttons();  
         open_auth_box = 'none';
         return;  
       }
@@ -164,16 +220,28 @@
       let auth_input_html = '<div id="auth-input-box"><h3>Log in: </h3>';
       auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
-      auth_input_html += '<div><button onclick="login()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
+      auth_input_html += `<div id="auth-error"><!--  Insert errors here  --></div>`;
+      auth_input_html += '<div><button onclick="login()">Log in</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_auth_buttons()">Close</button></div>';
 
       auth_input_html += '</div>';
-      render_login_buttons();
+      render_auth_buttons();
       document.getElementById('user-auth').innerHTML += auth_input_html;
+      //  Username -- lowercase alphanumeric and _ only
+      const username_input = document.getElementById('username');
+      const username_regex = /^[a-z0-9_]*$/;
+      username_input.addEventListener("keydown", event => {
+        if (!username_regex.test(event.key) && !_utility_keys.includes(event.keyCode)) {
+          event.preventDefault();
+          document.getElementById('auth-error').innerHTML = "Username can only contain lowercase letters, numbers, and underscores.";
+        } else {
+          document.getElementById('auth-error').innerHTML = "";
+        }
+      });
     }
 
     function render_register_input() {
       if (open_auth_box == 'register') { 
-        render_login_buttons();  
+        render_auth_buttons();  
         open_auth_box = 'none';
         return;  
       }
@@ -184,11 +252,23 @@
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
       auth_input_html += '<div>Confirm pass: <input id="confirm-pass" type="password" /></div><br/>';
       auth_input_html += `<div id="auth-error"><!--  Insert errors here  --></div>`;
-      auth_input_html += '<div><button onclick="register()">Register</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_login_buttons()">Close</button></div>';
+      auth_input_html += '<div><button onclick="register()">Register</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_auth_buttons()">Close</button></div>';
 
       auth_input_html += '</div>';
-      render_login_buttons();
+      render_auth_buttons();
       document.getElementById('user-auth').innerHTML += auth_input_html;
+
+      //  Username -- lowercase alphanumeric and _ only
+      const username_input = document.getElementById('username');
+      const username_regex = /^[a-z0-9_]*$/;
+      username_input.addEventListener("keydown", event => {
+        if (!username_regex.test(event.key) && !_utility_keys.includes(event.keyCode)) {
+          event.preventDefault();
+          document.getElementById('auth-error').innerHTML = "Username can only contain lowercase letters, numbers, and underscores.";
+        } else {
+          document.getElementById('auth-error').innerHTML = "";
+        }
+      });
     }
 
     function render_user_profile_button() {
@@ -202,8 +282,11 @@
         return;  
       }
       open_auth_box = 'user-options';
-      let auth_input_html = '<div id="auth-input-box" style="height:100px; min-height: 100px;">';
-      auth_input_html += '<div><button onclick="logout()">Log out</button>&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="render_user_options()">Close</button></div>';
+      let auth_input_html = `<div id="auth-input-box" class="auth-popup-vertical">
+        <button onclick="load_settings()">Settings</button>
+        <button onclick="logout()">Log out</button>
+        <button onclick="render_user_options()">Close</button>
+      </div>`;
 
       auth_input_html += '</div>';
       render_user_profile_button();
@@ -222,7 +305,7 @@
         if (!response.error) {
           _db_list = response;
           render_side_bar();
-          if (_db_list) { load_database(_db_list[0]);  }  //  Load the first table on startup
+          // if (_db_list) { load_database(_db_list[0]);  }  //  Load the first table on startup
         } else {
           document.getElementById('error').innerHTML = response.msg;
         }
@@ -294,7 +377,13 @@
       let password = document.getElementById('pass').value;
       let confirm = document.getElementById('confirm-pass').value;
       if (password != confirm) {
-        document.getElementById('auth-error').innerHTML = `Passwords must match`;
+        document.getElementById('auth-error').innerHTML = `Passwords must match.`;
+        return;
+      } else if (username.length < 1) {
+        document.getElementById('auth-error').innerHTML = `Username required.`;
+        return;
+      } else if (password.length < 4) {
+        document.getElementById('auth-error').innerHTML = `Password must be at least 4 characters.`;
         return;
       }
 
@@ -313,9 +402,14 @@
             localStorage.setItem('session_id', response.session_id);
             console.log(localStorage.getItem('session_id'))
             _session_id = response.session_id;
-            _current_user = {username};
+            _current_user = {
+              id: response.id,
+              username,
+              display_name
+            };
             boot_side_bar();
             render_user_profile_button();  //  Close the register popup.
+            load_dashboard();
             open_auth_box = 'none';  //  Mark the register popup as closed.
           } else if (response.msg == 'Username must be unique.') {
             document.getElementById('auth-error').innerHTML = `The username "${username}" is already taken. Sorry!`;
@@ -331,7 +425,7 @@
       var password = document.getElementById('pass').value;
 
       if (username.length < 2) {
-        document.getElementById('error').innerHTML = 'Valid username required.';
+        document.getElementById('auth-error').innerHTML = 'Valid username required.';
         return;
       }
 
@@ -348,12 +442,17 @@
             console.log("Response recieved! Logging you in.");
             localStorage.setItem('session_id', response.session_id);
             _session_id = response.session_id;
-            _current_user = {username};
+            _current_user = {
+              id: response.user_data.id,
+              username: response.user_data.username,
+              display_name: response.user_data.display_name
+            };
             boot_side_bar();
             render_user_profile_button();  //  Close the login popup.
+            load_dashboard();
             open_auth_box = 'none';  //  Mark the login popup as closed.
           } else {
-            document.getElementById('error').innerHTML = response.msg;
+            document.getElementById('auth-error').innerHTML = response.msg;
           }
         }
       }
@@ -381,6 +480,7 @@
       background: black;
       display: flex;
       font-family: sans-serif;
+      overflow: hidden;
       padding: 0px;
       margin: 0px;
       --box-shadow: 2px 2px 10px black;
@@ -399,7 +499,10 @@
       --content-bg-light3: hsl(from var(--content-bg) h s calc(l + 15));
 
       --action-bg: rgb(43, 3, 38);
-      --red-bg: rgb(63, 2, 10);
+      --red-bg: rgb(126, 12, 27);
+
+      --error-red: rgb(223, 91, 91);
+      --success-green: rgb(97, 202, 97);
     }
 
     /********************/
@@ -426,6 +529,7 @@
     }
     #side-bar-title {
       cursor: pointer;
+      user-select: none;
     }
     #side-bar-subtitle {
       margin-bottom: 0px;
@@ -515,11 +619,21 @@
       box-sizing: border-box;
     }
     #auth-error {
-      color: red;
+      color: var(--error-red);
       padding-bottom: 4px;
+      max-width: 300px;
+      text-wrap: wrap;
+    }
+    .auth-popup-vertical {
+      min-height: 100px;
+      display: flex; 
+      flex-direction: column;
+      gap: 10px;
     }
 
+    /*************/
     /*  Landing  */
+    /*************/
     #landing {
       display: none;
       width: 75%;
@@ -532,6 +646,76 @@
       margin: 0px auto;
     }
 
+    /***************/
+    /*  Dashboard  */
+    /***************/
+    #dashboard {
+      width: 100%;
+      height: calc(100vh - 50px);
+      display: none;
+    }
+    #api-code-container, #dash-db-list-container {
+      text-align: left;
+      margin: 20px;
+      padding: 10px;
+      background: var(--content-bg-light1);
+      border-radius: 10px;
+      box-shadow: var(--box-shadow);
+    }
+    #api-code-container pre {
+      background: var(--content-bg-dark1);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .pink {
+      color: pink;
+    }
+    .yellow {
+      color: rgb(245, 245, 174);
+    }
+    .blue {
+      color: rgb(123, 194, 194);
+    }
+    #dash-db-list {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .dash-db {
+      width: 200px;
+      height: 100px;
+      padding: 10px;
+      box-sizing: border-box;
+      border-radius: 10px;
+    }
+    .dash-db-empty {
+      border: dashed 2px rgba(255, 255, 255, 0.329);
+      color: rgba(255, 255, 255, 0.329);
+      text-align: center;
+      cursor: pointer;
+    }
+    .dash-db-empty:hover {
+      border: dashed 2px rgba(255, 255, 255, 1);
+      color: white;
+    }
+
+      /***************/
+    /** User settings **/
+      /***************/
+    #user-settings {
+      width: 100%;
+      height: calc(100vh - 50px);
+      display: none;
+      text-align: left;
+      padding: 25px;
+      box-sizing: border-box;
+    }
+    .user-settings-input {
+      text-align: left;
+      margin: 10px;
+      width: 400px;
+      display: flex;
+      justify-content: space-between;
+    }
 
     /*  Tables  */
     #top-bar-title {
@@ -624,7 +808,9 @@
       border-radius: 10px;
       font-size: 1em;
       cursor: pointer;
-
+    }
+    button:hover {
+      filter: brightness(1.5)
     }
 
 
@@ -633,6 +819,7 @@
       position: absolute;
       bottom: 20px;
       right: 20px;
+      z-index: 3;
     }
 
     select, option {
@@ -640,6 +827,7 @@
       color: white;
       outline: none;
       border: none;
+      cursor: pointer;
     }
 
     /*********************************/
@@ -664,13 +852,19 @@
       position: relative;
       overflow: hidden;
       height: calc(100vh - 80px);
-    }
+      background-color: #000000;
+      opacity: 0.8;
+      background: linear-gradient(
+        135deg, 
+      #0b0b0b55 25%, 
+        transparent 25%) -10px 0/ 20px 20px, 
+        linear-gradient(225deg, #0b0b0b 25%, transparent 25%) -10px 0/ 20px 20px, 
+        linear-gradient(315deg, #0b0b0b55 25%, transparent 25%) 0px 0/ 20px 20px, 
+        linear-gradient(45deg, #0b0b0b 25%, #000000 25%) 0px 0/ 20px 20px;    
+      }
     #schema-display  {
       position: relative;
       height: calc(100vh - 80px);
-    }
-    body {
-      overflow: hidden;
     }
     .schema-table {
       position: absolute;
@@ -683,7 +877,42 @@
       background: var(--content-bg-light2);
       margin: 0px;
       padding: 10px 15px;
+      position: relative;
+    }
+    .schema-table-icon {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      cursor: pointer;
+      display: none;
+    }
+    .schema-add-a-column-btn {
+      font-size: 0.8em;
+      padding: 2px;
+      cursor: pointer;
+      opacity: 0.6;
+    }
+    .schema-add-a-column-btn:hover {
+      font-weight: bold;
+      opacity: 1;
+    }
+    .table-mover {
+      left:12px;
+      top: 12px;
+      right:auto;
       cursor: grab;
+    }
+    .schema-table-icon:hover {
+      transform: scale(1.3);
+    }
+    .schema-table-name:hover .schema-table-icon {
+      display: block;
+    }
+    .schema-table-name input {
+      background: none;
+      text-align: center;
+      padding: 0px;
+      width: calc(100% - 40px);
     }
     .schema-table-column {
       margin: 5px 15px;
@@ -691,6 +920,12 @@
       justify-content: space-between;
       font-size: 0.8em;
       position: relative;
+    }
+    .schema-table-column select {
+      field-sizing: content;
+    }
+    .schema-table-column input {
+      padding: 0px;
     }
     .fk-input, .fk-output {
       height: 14px;

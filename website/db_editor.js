@@ -22,7 +22,7 @@ function load_schema() {
   unrender_all();
   render_side_bar();
   document.getElementById('schema-display-container').style.display = "block";
-  document.getElementById('top-bar-title').innerHTML = `<h3><span style="font-weight:normal">Database:</span> ${_selected_db.name}</h3>`;
+  document.getElementById('top-bar-title').innerHTML = `<h3 style="margin:0px"><span style="font-weight:normal">Database:</span> ${_selected_db.name}</h3>`;
   http.open("GET", `/api/all-table-metadata?username=${_current_user.username}&database=${_selected_db.name}`);
   http.send();
   http.onreadystatechange = (e) => {
@@ -48,9 +48,11 @@ function load_schema() {
   //  Mouse up handler
   _event_listeners.mouseup = function(e) {
     
+    let rerender = false;
     //  If we're releasing a fk line, check if we're releasing on an input
     let el;
     if (_selected_fk_output.table_idx > -1) { //  If we've selected an FK line...
+      rerender = true;
       el = e.target;                   //  Get the element we just released the mouse over.
       while (el && !el.classList.contains('schema-table')) {  //  Search for a parent with class="schema-table"
         el = el.parentElement;
@@ -63,13 +65,15 @@ function load_schema() {
       let fk_output_table = _schema_data[fk_output_table_idx];
       
       fk_output_table.columns[fk_output_col_idx].fk_input_dest = fk_input_table_idx;  //  Assign that index to the column's .fk_input_dest
+
+    } else if (_selected_schema_table >= 0) {
+      rerender = true;
     }
     _is_mouse_down = false;
     _selected_schema_table = -1;
     _selected_fk_output = [-1,-1];
     document.getElementById('schema-display').classList.remove('cursor-grabbing');
-    requestAnimationFrame(render_schema);
-
+    if (rerender) {     requestAnimationFrame(render_schema);    }
   }
   document.addEventListener('mouseup', _event_listeners.mouseup);
 
@@ -197,9 +201,10 @@ function render_schema() {
     schema_html += `<div class="schema-table" id="s-table-${i}" style="left: ${table.x_pos}px; top: ${table.y_pos}px;" >`;
     schema_html += `<h4 
       class="schema-table-name"
-      onmousedown="_selected_schema_table = ${i}"
     >
-      ${ table.name }
+      <input type="text" id="col-name-${i}" value="${table.name}" onchange="_schema_data[${i}].name = event.target.value"/>
+      <div class="schema-table-icon table-mover" onmousedown="_selected_schema_table = ${i}">&#10018;</div>
+      <div class="schema-table-icon" onclick="delete_schema_table(${i})">&#128465;</div>
     </h4>`;
     for (let j = 0; j < table.columns.length; j++ ) {
       let column = table.columns[j];
@@ -210,7 +215,16 @@ function render_schema() {
       //  The code for the table.
       schema_html += `<div class="schema-table-column">
         ${ column.snakecase == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
-        <div class="schema-col-name">${column.name}</div>
+        <div class="schema-col-name">
+          <input 
+            type="text" 
+            id="col-name-${i}-${j}" 
+            style="field-sizing: content" 
+            value="${column.name}"
+            onchange="_schema_data[${i}].columns[${j}].name = event.target.value"
+            ${column.snakecase == 'id' ? 'readonly' : ''}
+          >
+        </div>
         <div class="schema-col-type">
           ${get_datatype_dropdown(
             column.datatype == 'fk' ? `fk-${column.fk_input_dest}` : column.datatype, 
@@ -220,14 +234,26 @@ function render_schema() {
           )}
         </div>
         ${ column.datatype == 'fk' ? `<div class="fk-output" onmousedown="_selected_fk_output = {table_idx: ${i}, col_idx: ${j}}"></div>` : ''}
-        <div class="connection" id="schema-col-${i}-${j}"></div>
       </div>`
-    }
+    } //  End loop through columns. 
+    schema_html += `<div 
+        class="schema-add-a-column-btn" 
+        onclick="_schema_data[${i}].columns.push({ name: 'Column ' + ${table.columns.length+1}, unique: false, required: false, datatype: 'string' }); 
+          render_schema();"
+      >
+        + Add a column
+    </div>`;
     schema_html += `</div>`;
   }
   document.getElementById('schema-display').innerHTML = schema_html;
+
+  //  Not currently used (TODO):
   document.getElementById('schema-display').style.transform = `scale(${1 + _zoom * 0.01}) translate(${_pan_x}px, ${_pan_y}px)`
   
+  //  Render "add a table" and "save" buttons
+  document.getElementById('action-button-container').innerHTML = `<button onclick="add_table_to_schema()">+ Add a table</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
+  document.getElementById('action-button-container').innerHTML += `<button onclick="update_db()">&#128190; Save changes</button>`;
+
 }
 
 //  This function takes a table index, and, if a FK references that table,
@@ -258,10 +284,63 @@ function table_input_click(table_idx) {
   }
 }
 
+//  Update the datatype of a table column
 function update_type(table_idx, column_idx) {
   let new_val = document.getElementById(`i-${table_idx}-${column_idx}`).value;
   _schema_data[table_idx].columns[column_idx].fk_input_dest = Number(new_val.split('-')[1])
   _schema_data[table_idx].columns[column_idx].datatype = 'fk';
   render_schema();
   requestAnimationFrame(render_schema);
+}
+
+//  Fires when you click the "+ Add a table" button
+function add_table_to_schema() {
+  console.log(_schema_data);
+  _schema_data.push({
+    name: 'New Table ' + (_schema_data.length + 1),
+    snakecase: 'new-table-' + (_schema_data.length + 1),
+    max_id: 0,
+    columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
+    x_pos: 0,
+    y_pos: 0
+  });
+  set_schema_pos();
+  requestAnimationFrame(render_schema);
+}
+
+//  Delete a table
+function delete_schema_table(index) {
+  if (!confirm(`Delete the table "${_schema_data[index].name}"?`)) {
+    return;
+  }
+  _schema_data.splice(index, 1);
+  requestAnimationFrame(render_schema);
+}
+
+//  Update the entire DB, including all the table's metadata if needed 
+function update_db() {
+
+  if (!confirm(`Are you sure you want to update the database "${_selected_db.name}"?  ROW DATA MAY BE LOST!!`)) {
+    return;
+  }
+  
+  //  Ensure all tables have a snakecase.
+  for (let i = 0; i < _schema_data.length; i++) {
+    _schema_data[i].snakecase = to_snakecase(_schema_data[i].name)
+  }
+
+  http.open("POST", `/api/update-db?username=${_current_user.username}&db_name=${_selected_db.name}`);
+  http.send(JSON.stringify(_schema_data));
+  http.onreadystatechange = (e) => {
+    if (http.readyState == 4 && http.status == 200) {
+      let response = JSON.parse(http.responseText);
+      if (!response.error) {
+        console.log("Wowza!  Updated the whole database!")
+        load_database(_selected_db.name);
+        render_side_bar();
+      } else {
+        document.getElementById('error').innerHTML = response.msg;
+      }
+    }
+  }
 }
