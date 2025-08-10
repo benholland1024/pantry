@@ -341,7 +341,7 @@ POST_routes['/api/update-db'] = function(data, res) {
   try {
     //  Step 1: Get all existing tables in this DB
     let existing_table_names = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
-    console.log(path.parse(existing_table_names[0]).name)
+    // console.log(path.parse(existing_table_names[0]).name)
 
     //  Step 2:  Iterate through existing tables.  Update those that need it.  Track which tables are seen in both lists.
     for (let i = 0; i < existing_table_names.length; i++) {
@@ -387,8 +387,47 @@ POST_routes['/api/update-db'] = function(data, res) {
   }
 
   api_response(res, 200, JSON.stringify([]));
-
+  //  End update-db
 }
+
+//  Update the name of a database. 
+//    Param: /api/update-db-name
+//    Data: { username, old_name, new_name }
+POST_routes['/api/update-db-name'] = function(data, res) {
+  console.log(data);
+  let old_name = data.old_name;
+  let new_name = data.new_name;
+  let username = data.username;
+  let response = { error: false };
+  try { 
+    fs.renameSync(`${__dirname}/databases/${username}/${old_name}`, `${__dirname}/databases/${username}/${new_name}`);
+  } catch(err) {
+    response.error = true;
+    response.msg = err;
+    console.log(err)
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+
+//  Delete a database. 
+//    Param: /api/delete-db
+//    Data: { username, db_name }
+POST_routes['/api/delete-db'] = function(data, res) {
+  console.log(data);
+  let db_name = data.db_name
+  let username = data.username;
+  let response = { error: false };
+  try { 
+    deleteDirectoryRecursive(`${__dirname}/databases/${username}/${db_name}`);
+  } catch(err) {
+    response.error = true;
+    response.msg = err;
+    console.log(err)
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
 
 //  Register a new user. 
 //    Param: /api/register
@@ -495,7 +534,7 @@ POST_routes['/api/update-password'] = function(password_update, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
-//  Used for delete-account.  This is used bc older versions of nodejs don't have fs.rmSync
+//  Used for delete-account and delete-db.  This is used bc older versions of nodejs don't have fs.rmSync
 function deleteDirectoryRecursive(directoryPath) {
   if (fs.existsSync(directoryPath)) {
     fs.readdirSync(directoryPath).forEach((file) => {

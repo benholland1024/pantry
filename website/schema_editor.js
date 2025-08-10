@@ -29,7 +29,10 @@ function load_schema() {
     if (http.readyState == 4 && http.status == 200) {
       let table_metadata = JSON.parse(http.responseText);
       _schema_data = table_metadata;
-      set_schema_pos();
+      //  Get reasonable positions for all tables, ONLY if we don't already have pos data
+      if (_schema_data.length >= 1 && typeof _schema_data[0].x_pos != 'number') {
+        set_schema_pos();
+      }
       render_schema();
     }
   }
@@ -133,6 +136,34 @@ function move_table(e) {
   requestAnimationFrame(render_schema);
 }
 
+//  Gets the x and y position for a specific table.  
+//    Used for "new tables". TODO: This needs redesigned. 
+function get_schema_table_pos(table_index) {
+  const default_gap = 40;
+  let window_width = document.getElementById('schema-display').offsetWidth;
+  let wrap_count = 0;
+  let tables_per_row = 0; //  The amount of tables that fit before we need to wrap.
+  for (let i = 0; i <= table_index; i++) {
+    let table = _schema_data[i];
+    let x_pos = default_gap + i * (_table_width + default_gap);
+    if (tables_per_row > 0) {
+      x_pos -= tables_per_row * (_table_width + default_gap)
+    }
+    if (x_pos + _table_width > window_width && i > 0) {
+      wrap_count++;
+      if (tables_per_row == 0) { tables_per_row = i; }
+      x_pos = default_gap + (i % tables_per_row) * (_table_width + default_gap)
+    }
+    if (i == table_index) {
+      let y_pos = default_gap + 200 * wrap_count;
+      return {
+        y_pos: y_pos,
+        x_pos: x_pos
+      }
+    }
+  }
+}
+
 //  This function gets the initial position of schema tables, including wrapping.
 function set_schema_pos() {
   const default_gap = 40;
@@ -196,6 +227,12 @@ function render_schema() {
     }
   }
   schema_html +=  `</svg>`;
+
+  //  Rendering the tables themselves
+  let table_list = [];  //  We need this for rendering foreign key options
+  for (let i = 0; i < _schema_data.length; i++) {
+    table_list.push(_schema_data[i].name);
+  }
   for (let i = 0; i < _schema_data.length; i++) {
     let table = _schema_data[i];
     schema_html += `<div class="schema-table" id="s-table-${i}" style="left: ${table.x_pos}px; top: ${table.y_pos}px;" >`;
@@ -228,9 +265,13 @@ function render_schema() {
         <div class="schema-col-type">
           ${get_datatype_dropdown(
             column.datatype == 'fk' ? `fk-${column.fk_input_dest}` : column.datatype, 
-            'i-' + i + '-' + j, 
-            'update_type(' + i + ',' + j + ')',
-            column.snakecase == 'id' ? 'disabled' : ''
+            {
+              id: 'i-' + i + '-' + j, 
+              onchange: 'update_type(' + i + ',' + j + ')',
+              disabled: column.snakecase == 'id' ? 'disabled' : '',
+              table_name: table.snakecase,
+              table_list: table_list
+            }
           )}
         </div>
         ${ column.datatype == 'fk' ? `<div class="fk-output" onmousedown="_selected_fk_output = {table_idx: ${i}, col_idx: ${j}}"></div>` : ''}
@@ -287,24 +328,28 @@ function table_input_click(table_idx) {
 //  Update the datatype of a table column
 function update_type(table_idx, column_idx) {
   let new_val = document.getElementById(`i-${table_idx}-${column_idx}`).value;
-  _schema_data[table_idx].columns[column_idx].fk_input_dest = Number(new_val.split('-')[1])
-  _schema_data[table_idx].columns[column_idx].datatype = 'fk';
+  if (new_val.split('-')[0] == 'fk') {
+    _schema_data[table_idx].columns[column_idx].fk_input_dest = Number(new_val.split('-')[1])
+    _schema_data[table_idx].columns[column_idx].datatype = 'fk';
+  } else {
+    _schema_data[table_idx].columns[column_idx].datatype = new_val;
+  }
   render_schema();
   requestAnimationFrame(render_schema);
 }
 
 //  Fires when you click the "+ Add a table" button
 function add_table_to_schema() {
+  let coords = get_schema_table_pos(_schema_data.length);  //  Get a reasonable position for a new table
   console.log(_schema_data);
   _schema_data.push({
     name: 'New Table ' + (_schema_data.length + 1),
     snakecase: 'new-table-' + (_schema_data.length + 1),
     max_id: 0,
     columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
-    x_pos: 0,
-    y_pos: 0
+    x_pos: coords.x_pos,
+    y_pos: coords.y_pos
   });
-  set_schema_pos();
   requestAnimationFrame(render_schema);
 }
 

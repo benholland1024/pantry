@@ -5,7 +5,7 @@
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#129387;</text></svg>"
-    />
+    /><!--  Favicon!  -->
   </head>
 
   <body style="background:black;">
@@ -30,9 +30,19 @@
       </div>
       <div id="error"></div>
 
+      <!--------------->
       <!--  Landing  -->
+      <!--------------->
       <div id="landing" style="display:none;">
-        <img src="/assets/can-and-bg.png" alt="A picture of a can of soup that says 'DataPantry' in the style of the Campbell's soup logo."/>
+        <!-- <img 
+          src="/assets/DataPantryLogo.svg" 
+          width="250px"
+          alt="A picture of a can of soup that says 'DataPantry' in the style of the Campbell's soup logo."
+        /> -->
+        <div id="svg-container">
+          
+        </div>
+      
         <h2>Cloud database management. Easy to use. 100% free.</h2>
         <p><i>
           *This is a personal, learning project. I don't gaurantee your data is secure because I haven't spent enough time on the project. 
@@ -47,7 +57,9 @@
         <button onclick="boot_side_bar();" id="landing-dash-btn">Go to your dashboard!</button>
       </div>
 
+      <!----------------->
       <!--  Dashboard  -->
+      <!----------------->
       <div id="dashboard">
         <div id="api-code-container">
           <h4>Your API key:</h4>
@@ -66,10 +78,12 @@
         </div>
       </div>
 
+      <!--------------------->
       <!--  User settings  -->
+      <!--------------------->
       <div id="user-settings">
         <div class="user-settings-input">Username: <input id="username-settings" readonly/></div>
-        <div class="user-settings-input">Display name: <input id="display-name-settings" readonly placeholder="No display name"/></div>
+        <!-- <div class="user-settings-input">Display name: <input id="display-name-settings" readonly placeholder="No display name"/></div> -->
         <hr/>
         <h4>Change your password:</h4>
         <div class="user-settings-input">Current password: <input type="password" id="current-password-settings"/></div>
@@ -86,10 +100,7 @@
         <input type="text" id="confirm-username-to-delete-acct" placeholder="Confirm your username"/>
         <div class="user-settings-input" id="delete-acct-error" style="color:var(--error-red);"><!--  Insert error text here  --></div>
         <button onclick="delete_account()" style="background: var(--red-bg)">Delete your account</button>
-
-
-
-      </div>
+      </div><!--  End user settings  -->
 
       <!-- Table display stuff -->
       <div id="table-display"><!-- Insert table and controls here  --></div>
@@ -102,17 +113,34 @@
         <div id="schema-display"><!--  Insert schema diagram here  --></div>
       </div>
 
+      <!--  Db settings  -->
+      <div id="db-settings-container">
+        <div class="db-settings-input">Database name: <input type="text" id="db-name"></div>
+        <div style="color:var(--error-red)" id="db-name-error"><!-- Error msg here --></div>
+        <br/>
+        <button onclick="update_db_name()">Update name</button>
+        <br/><br/>
+        <br/><hr/>
+        <h4><!--Stats:--></h4>
+        <div style="display: block;height: 40vh"></div><hr/>
+        <h4>Danger zone</h4>
+
+        <button style="background-color:var(--red-bg)" onclick="delete_db()">Delete database</button>
+      </div>
+
     </div>
 
   </body>
   
   <script src="/table_creator.js"></script>
   <script src="/table_editor.js"></script>
+  <script src="/landing.js"></script>
   <script src="/dashboard.js"></script>
   <script src="/settings.js"></script>
   <script src="/row_editor.js"></script>
-  <script src="/db_editor.js"></script>
-  <script src="/db_creator.js"></script>
+  <script src="/schema_editor.js"></script>
+  <script src="/db_creator.js"></script>    <!--  Literally just the "+ Add a Database" button -->
+  <script src="/db_settings.js"></script>   
 
   <script>
 
@@ -131,6 +159,13 @@
     const _utility_keys = [8, 9, 39, 37, 224];               //  Used for input validation. Backspace, tab, command, arrow keys
 
     let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
+
+    // Animate the landing logo
+    let _time = 0;
+    let _pink_path = ['M', 6735.02, 2025.59, 'C', 6735.93, 1993.81,
+      6677.83, 1961.57, 6636.07, 1961.35, 'C', 6594.31, 1961.13, 6436.35, 2028.31, 6453.6, 2079.15,
+      'C', 6470.85, 2129.98, 6582.51, 2277.05, 6737.74, 2221.67,'C', 6807.57, 2180.82, 6699.53,
+      2144.18, 6697.23, 2116.05, 'C', 6700.74, 2082.12, 6734.11, 2057.36, 6735.02, 2025.59, 'Z'];
 
 
     //  BOOT
@@ -178,24 +213,51 @@
       document.getElementById('landing').style.display = 'none';
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('user-settings').style.display = 'none';
+      document.getElementById('db-settings-container').style.display = 'none';
 
     }
 
-    function render_landing() {
-      window.history.pushState({ },"", `/`);
-      unrender_all();
-      minimize_side_bar();
-      if (!_current_user.username) {
-        render_auth_buttons();
-        document.getElementById('landing-reg-btn').style.display = 'block'; //  Action btn on landing page
-        document.getElementById('landing-dash-btn').style.display = 'none'; 
-      } else {
-        render_user_profile_button();
-        document.getElementById('landing-reg-btn').style.display = 'none';  //  Action btn on landing page
-        document.getElementById('landing-dash-btn').style.display = 'block';
+    //  Returns HTML for a dropdown list of datatypes. 
+    //   Used in table_creator.js and db_editor.js
+    //   Options: {
+    //     id:         string       The HTML id
+    //     onchange:   function     The reaction to changes
+    //     disabled:   string       Is the dropdown disabled? 
+    //     table_name: string       The table name, which will be ommitted in forein keys
+    //     table_list: array        A list of table names, for foreign keys. 
+    //   }
+    function get_datatype_dropdown(value, opts) {
+      let id = opts.id;
+      let onchange = opts.onchange;
+      let disabled = opts.disabled;
+      let table_name = opts.table_name;
+      let table_list = opts.table_list ? opts.table_list : _table_list;
+
+      let foreign_key_opts = ``;
+
+      // if (value.split('-')[0] == 'fk') {
+      //   console.log(value);
+      // }
+      //  Get the foreign key value options
+      for (let i = 0; i < table_list.length; i++) {
+        if (table_list[i] == table_name) {
+          continue;
+        }
+        foreign_key_opts += `<option value="fk-${i}" ${value == `fk-${i}` ? 'selected' : ''}>FK from: <b>${ table_list[i] }</b></option>`
       }
-      document.getElementById('top-bar-title').innerHTML = '<h1>DataPantry</h1>'
-      document.getElementById('landing').style.display = 'block';
+      return `
+        <select id="${id}" value="${value}" onchange="${onchange}" ${disabled ? 'disabled' : ''}>
+          <option value="string" ${value == 'string' ? 'selected' : ''}>String</option>
+          <option value="number" ${value == 'number' ? 'selected' : ''}>Number</option>
+          <option value="bool" ${value == 'bool' ? 'selected' : ''}>Boolean</option>
+          <option value="datetime" ${value == 'datetime' ? 'selected' : ''}>Datetime</option>
+          <option value="date" ${value == 'date' ? 'selected' : ''}>Date</option>
+          <option value="time" ${value == 'time' ? 'selected' : ''}>Time</option>
+          <option value="file" ${value == 'file' ? 'selected' : ''}>File</option>
+          <option value="bytes" ${value == 'bytes' ? 'selected' : ''}>Bytes</option>
+          <option disabled>Foreign Keys:</option>
+          ${foreign_key_opts}
+        </select>`;
     }
 
     ////
@@ -248,7 +310,7 @@
       open_auth_box = 'register';
       let auth_input_html = '<div id="auth-input-box"><h3>Register: </h3>';
       auth_input_html += '<div>Username: <input id="username"/> </div><br/>';
-      auth_input_html += '<div>Display name: <input id="display-name"/> </div><br/>';
+      // auth_input_html += '<div>Display name: <input id="display-name"/> </div><br/>';
       auth_input_html += '<div>Password: <input id="pass" type="password" /></div><br/>';
       auth_input_html += '<div>Confirm pass: <input id="confirm-pass" type="password" /></div><br/>';
       auth_input_html += `<div id="auth-error"><!--  Insert errors here  --></div>`;
@@ -322,7 +384,10 @@
       for (let i = 0; i < _db_list.length; i++) {
         let selected_class = 'selected';
         if (_selected_db.name != _db_list[i]) {  selected_class = ''; }
-        document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${_db_list[i]}')">${_db_list[i]}</div>`;
+        document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${_db_list[i]}')">
+          ${_db_list[i]} 
+          <span class="db-setting-icon" onclick="load_db_settings('${_db_list[i]}', event)">&#9881;<!-- gear icon  --></span>
+        </div>`;
         //  Render list of DB tables, if the DB is selected:
         if (_selected_db.name == _db_list[i]) {
           for (let j = 0; j < _table_list.length; j++) {
@@ -360,11 +425,7 @@
         if (!response.error) {
           _table_list = response;
           render_side_bar();
-          if (_table_list && _table_list.length) { 
-            load_schema();
-          }  else if (_table_list.length === 0) {
-            boot_table_maker();
-          }
+          load_schema();
         } else {
           document.getElementById('error').innerHTML = response.msg;
         }
@@ -373,7 +434,7 @@
 
     function register() {
       let username = document.getElementById('username').value;
-      let display_name = document.getElementById('display-name').value;
+      // let display_name = document.getElementById('display-name').value;
       let password = document.getElementById('pass').value;
       let confirm = document.getElementById('confirm-pass').value;
       if (password != confirm) {
@@ -391,7 +452,7 @@
       http.send(JSON.stringify({
         username: username,
         password,
-        display_name
+        // display_name
       }));
       http.onreadystatechange = (e) => {
         let response;      
@@ -405,7 +466,7 @@
             _current_user = {
               id: response.id,
               username,
-              display_name
+              // display_name
             };
             boot_side_bar();
             render_user_profile_button();  //  Close the register popup.
@@ -445,7 +506,7 @@
             _current_user = {
               id: response.user_data.id,
               username: response.user_data.username,
-              display_name: response.user_data.display_name
+              // display_name: response.user_data.display_name
             };
             boot_side_bar();
             render_user_profile_button();  //  Close the login popup.
@@ -541,11 +602,23 @@
     #side-bar div {
       padding: 10px;
     }
+    .db-name {
+      position: relative;
+    }
     .db-name::before {
       content: '\25B8  ';
     }
     .db-name.selected::before {
       content: '\25BE  ';
+    }
+    .db-setting-icon {
+      position: absolute;
+      padding: 5px;
+      right: 5px;
+      top: 5px;
+    }
+    .db-setting-icon:hover {
+      transform: scale(1.3);
     }
     .table-name, .create-new-table, .db-name, .create-new-database {
       cursor: pointer;
@@ -955,6 +1028,19 @@
     }
     .cursor-grabbing * {
       cursor: grabbing;
+    }
+
+
+    /******************/
+    /*  DB settings   */
+    /******************/
+    #db-settings-container {
+      width: 100%;
+      height: calc(100vh - 50px);
+      display: none;
+      text-align: left;
+      padding: 25px;
+      box-sizing: border-box;
     }
 
   </style>

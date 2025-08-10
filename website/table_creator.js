@@ -107,33 +107,6 @@ function render_table_maker() {
   document.getElementById('action-button-container').innerHTML = `<button onclick="save_new_table()">&#128190; Save table</button>`
 }
 
-//  Returns HTML for a dropdown list of datatypes. 
-//   Used in table_editor.js and db_editor.js
-function get_datatype_dropdown(value, id, on_change, disabled) {
-  let foreign_key_opts = ``;
-
-  // if (value.split('-')[0] == 'fk') {
-  //   console.log(value);
-  // }
-  //  Get the foreign key value options
-  for (let i = 0; i < _table_list.length; i++) {
-    foreign_key_opts += `<option value="fk-${i}" ${value == `fk-${i}` ? 'selected' : ''}>FK from: <b>${ _table_list[i] }</b></option>`
-  }
-  return `
-    <select id="${id}" value="${value}" onchange="${on_change}" ${disabled ? 'disabled' : ''}>
-      <option value="string" ${value == 'string' ? 'selected' : ''}>String</option>
-      <option value="number" ${value == 'number' ? 'selected' : ''}>Number</option>
-      <option value="bool" ${value == 'bool' ? 'selected' : ''}>Boolean</option>
-      <option value="datetime" ${value == 'datetime' ? 'selected' : ''}>Datetime</option>
-      <option value="date" ${value == 'date' ? 'selected' : ''}>Date</option>
-      <option value="time" ${value == 'time' ? 'selected' : ''}>Time</option>
-      <option value="file" ${value == 'file' ? 'selected' : ''}>File</option>
-      <option value="bytes" ${value == 'bytes' ? 'selected' : ''}>Bytes</option>
-      <option disabled>Foreign Keys:</option>
-      ${foreign_key_opts}
-    </select>`;
-}
-
 //  Runs when you click the "Add a new column" button
 function render_column_creator() {
   //  Rerender table, deselect any selected row
@@ -160,7 +133,7 @@ function render_column_creator() {
   cell.innerHTML = `<td><input type="checkbox" id="i-required" /></td>`;
 
   cell = newRow.insertCell();
-  cell.innerHTML = `<td>${get_datatype_dropdown('string', 'i-datatype', 'update_column_datatype()')}</td>`;
+  cell.innerHTML = `<td>${get_datatype_dropdown('string', {id: 'i-datatype', onchange:'update_column_datatype()'})}</td>`;
 
   cell = newRow.insertCell();
   cell.innerHTML = `<div class="table-row-icon save-row-icon" onclick="add_column()">&#128190;</div>`; //  save icon
