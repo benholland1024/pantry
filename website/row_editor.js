@@ -14,7 +14,7 @@ function render_table() {
   let columns = _selected_table.metadata.columns;
   for (let i = 0; i < columns.length; i++) {
     //if (columns[i].snakecase == 'id') { continue; }
-    table_string += `<th>${columns[i].snakecase}</th>`;
+    table_string += `<th>${columns[i].name}</th>`;
   }
   table_string += `<th class="table-row-icon"></th>`
   table_string += `<th class="table-row-icon"></th>`
