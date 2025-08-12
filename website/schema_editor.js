@@ -249,11 +249,11 @@ function render_schema() {
       let column = table.columns[j];
 
       //  The next line determines whether to add the "connected-input" class to a table.
-      let is_selected_input = (column.snakecase == 'id' && get_fk_output_from_input(i).table_idx != -1) ? 'connected-input' : '';
+      let is_selected_input = (to_snakecase(column.name) == 'id' && get_fk_output_from_input(i).table_idx != -1) ? 'connected-input' : '';
 
       //  The code for the table.
       schema_html += `<div class="schema-table-column">
-        ${ column.snakecase == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
+        ${ to_snakecase(column.name) == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
         <div class="schema-col-name">
           <input 
             type="text" 
@@ -261,7 +261,7 @@ function render_schema() {
             style="field-sizing: content" 
             value="${column.name}"
             onchange="_schema_data[${i}].columns[${j}].name = event.target.value"
-            ${column.snakecase == 'id' ? 'readonly' : ''}
+            ${to_snakecase(column.name) == 'id' ? 'readonly' : ''}
           >
         </div>
         <div class="schema-col-type">
@@ -270,7 +270,7 @@ function render_schema() {
             {
               id: 'i-' + i + '-' + j, 
               onchange: 'update_schema_col_datatype(' + i + ',' + j + ')',
-              disabled: column.snakecase == 'id' ? 'disabled' : '',
+              disabled: to_snakecase(column.name) == 'id' ? 'disabled' : '',
               table_name: table.name,
               table_list: table_list
             }

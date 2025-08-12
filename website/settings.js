@@ -16,7 +16,6 @@ function load_settings() {
 function render_settings() {
   document.getElementById('user-settings').style.display = 'block';                    //  Make sure the page displays.
   document.getElementById('username-settings').value = _current_user.username;         //  Reset the username & display name. 
-  document.getElementById('display-name-settings').value = _current_user.display_name;
   document.getElementById('current-password-settings').value = '';                     //  Make the password values blank
   document.getElementById('new-password-settings').value = '';
   document.getElementById('confirm-new-password-settings').value = '';
@@ -105,5 +104,18 @@ function delete_account() {
         alert(`Your account has NOT been deleted! ${response.msg}`);
       }
     }
+  }
+}
+
+//  Turns dark mode on if it's off, or off if it's on
+function toggle_darkmode() {
+  if (document.body.classList.contains('light-mode')) {
+    document.body.classList.remove('light-mode');
+    localStorage.setItem('light-mode', 'false');
+    document.getElementById('dark-mode-toggle').innerHTML = '<button onclick="toggle_darkmode()">Use light mode</button>';    
+  } else {
+    document.body.classList.add('light-mode');
+    localStorage.setItem('light-mode', 'true');
+    document.getElementById('dark-mode-toggle').innerHTML = '<button onclick="toggle_darkmode()">Use dark mode</button>';
   }
 }

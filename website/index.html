@@ -8,7 +8,7 @@
     /><!--  Favicon!  -->
   </head>
 
-  <body style="background:black;">
+  <body>
     <!---------------->
     <!--  Side bar  -->
     <!---------------->
@@ -78,6 +78,8 @@
       <div id="user-settings">
         <div class="user-settings-input">Username: <input id="username-settings" readonly/></div>
         <!-- <div class="user-settings-input">Display name: <input id="display-name-settings" readonly placeholder="No display name"/></div> -->
+        <br/>
+        <div id="dark-mode-toggle"><button onclick="toggle_darkmode()">Toggle dark mode</button></div>
         <hr/>
         <h4>Change your password:</h4>
         <div class="user-settings-input">Current password: <input type="password" id="current-password-settings"/></div>
@@ -183,6 +185,11 @@
       //  Minimize the side bar if logged out
       } else {
         render_landing();
+      }
+      
+      // Remember whether we're in dark mode
+      if (localStorage.getItem('light-mode') == 'true') {
+        toggle_darkmode();
       }
     }
     boot();
@@ -320,12 +327,11 @@
     //  This renders all the side bar components.  Used any time a new DB or table is selected. 
     function render_side_bar() {
       document.getElementById('side-bar-title').innerHTML = '&#129387; DataPantry';
-      let selected_class = window.location.pathname.split('/')[1] == 'dashboard' ? 'selected' : '';
-      document.getElementById('side-bar-options').innerHTML = `<div class="${selected_class}" onclick="load_dashboard()">Dashboard</div>`
       document.getElementById('side-bar-subtitle').innerHTML = 'Your Databases:'
       document.getElementById('side-bar').style.width = '300px';
       document.getElementById('side-bar').style['min-width'] = '300px';
       document.getElementById('db-list').innerHTML = '';
+      let selected_class = '';   //  Used to add class="selected" to certain options
       let db_list = _db_data ? Object.keys(_db_data) : [];
       for (let i = 0; i < db_list.length; i++) {
         selected_class = 'selected';
@@ -346,6 +352,13 @@
         }
       }
       document.getElementById('db-list').innerHTML += `<div class="create-new-database" onclick="create_db()">+ Create a database</div>`;
+
+      //  Side bar options, at the bottom
+      selected_class = window.location.pathname.split('/')[1] == 'dashboard' ? 'selected' : '';
+      document.getElementById('side-bar-options').innerHTML = `<div class="${selected_class}" onclick="load_dashboard()">Dashboard</div>`;
+      selected_class = window.location.pathname.split('/')[1] == 'examples' ? 'selected' : '';
+      document.getElementById('side-bar-options').innerHTML += `<div class="${selected_class}" onclick="load_examples()">Examples</div>`
+
     }
 
     function minimize_side_bar() {
@@ -354,7 +367,7 @@
       document.getElementById('db-list').innerHTML = "";
       document.getElementById('side-bar').style.width = "60px";
       document.getElementById('side-bar').style['min-width'] = "60px";
-
+      document.getElementById('side-bar-options').innerHTML = "";
     }
 
    
@@ -483,13 +496,19 @@
 
   <style>
     body {
-      color: white;
-      background: black;
+      color: var(--text-color);
+      background: var(--content-bg-desat);
       display: flex;
       font-family: sans-serif;
       /* overflow: hidden; */
       padding: 0px;
       margin: 0px;
+
+      --background: black;
+
+      --text-color: white;
+      --text-color-transluscent: rgba(255,255,255,0.5);
+
       --box-shadow: 2px 2px 10px black;
 
       --content-bg: hsl(240, 55%, 8%);
@@ -505,7 +524,7 @@
       --content-bg-light2: hsl(from var(--content-bg) h s calc(l + 10));
       --content-bg-light3: hsl(from var(--content-bg) h s calc(l + 15));
 
-      --content-bg-alt: hsl(180, 57%, 15%);
+      --content-bg-alt: hsl(194, 78%, 16%);
       --content-bg-alt-light2: hsl(from var(--content-bg-alt) h calc(s - 40) calc(l + 10));;
 
       --action-bg: rgb(43, 3, 38);
@@ -514,6 +533,27 @@
 
       --error-red: rgb(223, 91, 91);
       --success-green: rgb(97, 202, 97);
+    }
+    body.light-mode {
+      color: var(--text-color);
+      background: var(--background);
+
+      --background: white;
+
+      --text-color: black;
+      --text-color-transluscent: rgba(0,0,0,0.5);
+
+      --content-bg: hsl(209, 86%, 78%);
+      --content-bg-transluscent: hsla(209, 86%, 78%, 0.5);
+
+      --content-bg-alt: hsl(194, 78%, 49%);
+
+      --action-bg: rgb(203, 156, 221);
+      --red-bg: rgb(155, 8, 27);
+
+      --error-red: rgb(212, 147, 147);
+      --success-green: rgb(97, 202, 97);
+
     }
 
     /********************/
@@ -536,7 +576,7 @@
     #side-bar h1 {
       font-size: 1.5em;
       /* font-family: serif; */
-      background: black; 
+      background: var(--content-bg-dark2); 
       margin-top: 0px; 
       padding: 15px;
     }
@@ -595,7 +635,7 @@
     }
     .table-name:hover, .create-new-table:hover, .db-name:hover, .create-new-database:hover {
       background: var(--content-bg-desat-light2);
-      color: white;
+      color: var(--text-color);
       opacity: 1;
     }
     #side-bar-options {
@@ -733,14 +773,14 @@
       background: var(--content-bg-alt);
       margin: 5px;
       box-shadow: var(--box-shadow);
-      color: rgba(255, 255, 255, 0.329);
+      color: var(--text-color-transluscent);
     }
     .dash-db:nth-child(odd) {
       background: var(--content-bg-alt-light2);
     }
     .dash-db:hover {
       filter: brightness(1.2);
-      color: white;
+      color: var(--text-color);
     }
     .dash-db button {
       opacity: 0.5;
@@ -749,15 +789,15 @@
       opacity: 1;
     }
     .dash-db-empty {
-      border: dashed 2px rgba(255, 255, 255, 0.329);
-      color: rgba(255, 255, 255, 0.329);
+      border: dashed 2px var(--text-color-transluscent);
+      color: var(--text-color-transluscent);
       background: none !important;
       box-shadow: none;
       cursor: pointer;
     }
     .dash-db-empty:hover {
-      border: dashed 2px rgba(255, 255, 255, 1);
-      color: white;
+      border: dashed 2px var(--text-color);
+      color: var(--text-color);
     }
 
       /***************/
@@ -765,7 +805,7 @@
       /***************/
     #user-settings {
       width: 100%;
-      height: calc(100vh - 50px);
+      min-height: calc(100vh - 50px);
       display: none;
       text-align: left;
       padding: 25px;
@@ -856,7 +896,7 @@
 
     input {
       background: var(--content-bg-light3);
-      color: white;
+      color: var(--text-color);
       border: none;
       padding: 4px;
       font-size: 1em;
@@ -867,7 +907,7 @@
     button {
       background: var(--action-bg);
       box-shadow: var(--box-shadow);
-      color: white;
+      color: var(--text-color);
       border: none;
       padding: 10px 20px;
       border-radius: 10px;
@@ -889,7 +929,7 @@
 
     select, option {
       background: var(--content-bg);
-      color: white;
+      color: var(--text-color);
       outline: none;
       border: none;
       cursor: pointer;
@@ -916,16 +956,16 @@
     #schema-display-container {
       position: relative;
       overflow: hidden;
-      height: calc(100vh - 80px);
-      background-color: #000000;
+      min-height: calc(100vh - 59px);
+      background-color: var(--content-bg-desat);
       opacity: 0.8;
       background: linear-gradient(
         135deg, 
-      #0b0b0b55 25%, 
+        var(--content-bg-transluscent) 25%, 
         transparent 25%) -10px 0/ 20px 20px, 
-        linear-gradient(225deg, #0b0b0b 25%, transparent 25%) -10px 0/ 20px 20px, 
-        linear-gradient(315deg, #0b0b0b55 25%, transparent 25%) 0px 0/ 20px 20px, 
-        linear-gradient(45deg, #0b0b0b 25%, #000000 25%) 0px 0/ 20px 20px;    
+        linear-gradient(225deg, var(--content-bg) 25%, transparent 25%) -10px 0/ 20px 20px, 
+        linear-gradient(315deg, var(--content-bg-transluscent) 25%, transparent 25%) 0px 0/ 20px 20px, 
+        linear-gradient(45deg, var(--content-bg) 25%, var(--background) 25%) 0px 0/ 20px 20px;    
       }
     #schema-display  {
       position: relative;
@@ -1004,12 +1044,18 @@
       border-radius: 7px 0px 0px 7px;
       transition-duration: 0.5s;
     }
+    .light-mode .fk-input {
+      background: rgb(62, 103, 216);
+    }
     .fk-output {
       width: 10px;
       background: rgb(150, 133, 92);
       right: -27px;
       border-radius: 0px 7px 7px 0px;
       cursor: grab;
+    }
+    .light-mode .fk-output {
+      background: rgb(183, 113, 204);
     }
     .connected-input {
       cursor: grab;
