@@ -147,7 +147,7 @@ function get_schema_table_pos(table_index) {
     let table = _schema_data[i];
     let x_pos = default_gap + i * (_table_width + default_gap);
     if (tables_per_row > 0) {
-      x_pos -= tables_per_row * (_table_width + default_gap)
+      x_pos -= tables_per_row * (_table_width + default_gap) * wrap_count;
     }
     if (x_pos + _table_width > window_width && i > 0) {
       wrap_count++;
@@ -174,13 +174,15 @@ function set_schema_pos() {
     let table = _schema_data[i];
     let x_pos = default_gap + i * (_table_width + default_gap);
     if (tables_per_row > 0) {
-      x_pos -= tables_per_row * (_table_width + default_gap)
+      x_pos -= tables_per_row * (_table_width + default_gap) * wrap_count;
     }
-    if (x_pos + _table_width > window_width && i > 0) {
+    //  If the current table would be shown off the screen in the x direction...
+    if (x_pos + _table_width > window_width && i > 0) { 
       wrap_count++;
       if (tables_per_row == 0) { tables_per_row = i; }
       x_pos = default_gap + (i % tables_per_row) * (_table_width + default_gap)
     }
+    console.log(wrap_count);
     let y_pos = default_gap + 200 * wrap_count;
     table.y_pos = y_pos;
     table.x_pos = x_pos;
@@ -267,9 +269,9 @@ function render_schema() {
             column.datatype == 'fk' ? `fk-${column.fk_input_dest}` : column.datatype, 
             {
               id: 'i-' + i + '-' + j, 
-              onchange: 'update_type(' + i + ',' + j + ')',
+              onchange: 'update_schema_col_datatype(' + i + ',' + j + ')',
               disabled: column.snakecase == 'id' ? 'disabled' : '',
-              table_name: table.snakecase,
+              table_name: table.name,
               table_list: table_list
             }
           )}
@@ -292,7 +294,10 @@ function render_schema() {
   document.getElementById('schema-display').style.transform = `scale(${1 + _zoom * 0.01}) translate(${_pan_x}px, ${_pan_y}px)`
   
   //  Render "add a table" and "save" buttons
-  document.getElementById('action-button-container').innerHTML = `<button onclick="add_table_to_schema()">+ Add a table</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
+  document.getElementById('action-button-container').innerHTML = `<button onclick="set_schema_pos(); render_schema()">
+    &#10227; Reset table positions
+  </button>&nbsp;&nbsp;&nbsp;&nbsp;`;
+  document.getElementById('action-button-container').innerHTML += `<button onclick="add_table_to_schema()">+ Add a table</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
   document.getElementById('action-button-container').innerHTML += `<button onclick="update_db()">&#128190; Save changes</button>`;
 
 }
@@ -326,7 +331,7 @@ function table_input_click(table_idx) {
 }
 
 //  Update the datatype of a table column
-function update_type(table_idx, column_idx) {
+function update_schema_col_datatype(table_idx, column_idx) {
   let new_val = document.getElementById(`i-${table_idx}-${column_idx}`).value;
   if (new_val.split('-')[0] == 'fk') {
     _schema_data[table_idx].columns[column_idx].fk_input_dest = Number(new_val.split('-')[1])

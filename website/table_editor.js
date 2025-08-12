@@ -53,10 +53,10 @@ function render_table_editor() {
   ///  Rendering column data... as rows... don't get confused here. 
   let rows = _selected_table.metadata.columns;
   for (let i = 0; i < rows.length; i++) {
-    let selected_class = 'class="selected-row"';
+    let selected_class = 'selected-row';
     let selected = _selected_row.id == rows[i].id
     if (true) {  selected_class = '';  } // TODO: Allow selection / editing of columns
-    table_maker_html += `<tr onclick="render_column_editor(${i})" ${selected_class}>`;
+    table_maker_html += `<tr onclick="render_column_editor(${i})" class="column-row ${selected_class}">`;
     for (let j = 0; j < column_data.length; j++) {
       table_maker_html += `<td>${rows[i][column_data[j][1]]}</td>`;
     }

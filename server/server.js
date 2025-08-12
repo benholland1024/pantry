@@ -247,9 +247,9 @@ GET_routes['/api/user-by-session'] = function(params, res) {
 
 
 //  Insert a row into a table.  
-//    Param: /api/insert?username=my-username&db_name=my-db&table_name=my-table
+//    Param: /api/insert-table?username=my-username&db_name=my-db&table_name=my-table
 //    Data:  An object with row data. 
-POST_routes['/api/insert'] = function(data, res) {
+POST_routes['/api/insert-row'] = function(data, res) {
   let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
@@ -260,9 +260,9 @@ POST_routes['/api/insert'] = function(data, res) {
 }
 
 //  Update a row in a table.  
-//    Param: /api/insert?username=my-username&db_name=my-db&table_name=my-table&id=26
+//    Param: /api/update-table?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  An object with row data. 
-POST_routes['/api/update'] = function(data, res) {
+POST_routes['/api/update-row'] = function(data, res) {
   let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
@@ -277,7 +277,7 @@ POST_routes['/api/update'] = function(data, res) {
 //  Delete a row from a table.  
 //    Param: /api/delete?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  None
-POST_routes['/api/delete'] = function(data, res) {
+POST_routes['/api/delete-row'] = function(data, res) {
   let username = data._params.username;
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
@@ -309,6 +309,46 @@ POST_routes['/api/create-table'] = function(data, res) {
   } catch (err) {
     response.error = true;
     response.msg = error;
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+//  Update a table's metadata.
+//    Param: /api/update-table?username=my-username&db_name=my-db&table_name=my-table
+//    Data:  An object like { name: '', max_id: 3, columns: [ {...}, {...} ], x_pos: 100, y_pos: 120 }
+POST_routes['/api/update-table'] = function(data, res) {
+  let db_name = data._params.db_name;
+  let username = data._params.username;
+  let table_name = data._params.table_name;
+  delete data._params
+  let response = {};
+  console.log(data);
+  let new_table_name = data.name.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
+  if (table_name.length == 0 &&              //  If the table doesn't exist, make it.
+      !fs.existsSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`)) {  
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`, '[]')
+  } else if (table_name != new_table_name) { //  If the table exists under a different name, rename it. 
+    try {
+      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/metadata/${new_table_name}.json`
+      );
+      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`
+      );
+    } catch (err) {
+      console.error('Error renaming a table file synchronously:', err);
+      response.error = true;
+      response.msg = err;
+    }
+  }
+  try {                                      //  Write the updated metadata of the table too
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${new_table_name}.json`, JSON.stringify(data, null, 2));
+    response.msg = `Updated a table with the old name "${table_name}", new name "${new_table_name}"!`;
+    // console.log(response.msg);
+  } catch (err) {
+    console.error('Error creating a new table file synchronously:', err);
+    response.error = true;
+    response.msg = err;
   }
   api_response(res, 200, JSON.stringify(response));
 }

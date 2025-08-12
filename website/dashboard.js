@@ -4,6 +4,9 @@
 
 
 function load_dashboard() {
+  if (!_current_user.username) {
+    return;
+  }
   window.history.pushState({ },"", `/dashboard`);
   unrender_all();
   document.getElementById('dashboard').style.display = 'block';

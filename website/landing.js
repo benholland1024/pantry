@@ -2,7 +2,23 @@
 ////  Landing
 ////
 
+// Animate the landing logo
+let _time = 0;
+let _do_logo_anim = true;  //  Used to stop the animation
+let _pink_path = ['M', 6735.02, 2025.59, 
+  'C', 6735.93, 1993.81, 6677.83, 1961.57, 6636.07, 1961.35, 
+  'C', 6594.31, 1961.13, 6436.35, 2028.31, 6453.6, 2079.15,
+  'C', 6470.85, 2129.98, 6582.51, 2277.05, 6737.74, 2221.67,
+  'C', 6807.57, 2180.82, 6699.53, 2144.18, 6697.23, 2116.05, 
+  'C', 6700.74, 2082.12, 6734.11, 2057.36, 6735.02, 2025.59, 'Z'];
 
+let _purple_path = ['M', 6735.02, 2025.59, 
+  'C', 6735.93, 1993.81, 6677.83, 1961.57, 6636.07, 1961.35,
+  'C', 6594.31, 1961.13, 6436.35, 2028.31, 6453.6, 2079.15, 
+  'C', 6470.85, 2129.98, 6582.51, 2277.05, 6737.74, 2221.67,
+  'C', 6807.57, 2180.82, 6699.53, 2144.18, 6697.23, 2116.05,
+  'C', 6700.74, 2082.12, 6734.11, 2057.36, 6735.02, 2025.59, 'Z']
+  
 //  Given a path (see _pink_path above), return an array like [{x:1,y:2}, ...]
 function path_to_verts(path) {
   let verts = [];
@@ -62,25 +78,50 @@ function path_to_string(path) {
   }
   return str;
 }
+//  Wobbles a path. Returns the path, wobbled.
+function wobble_path(path) {
+  let verts = path_to_verts(path);
+  let centroid = get_centeroid(verts);
+  for (let i = 0; i < verts.length; i++) {
+    let vector = get_unit_vector(centroid.x, centroid.y, verts[i].x, verts[i].y);
+    let offset = i;
+    if (i == 0) { offset = verts.length-1; }
+    let scale = .4 * Math.round(Math.sin(_time + offset) * 5) / 5;
+    verts[i].x += scale * vector.x;
+    verts[i].y += scale * vector.y;
+  }
+  return verts_to_path(verts);
+}
 //  Animate the logo!
 function animate_landing_logo() {
-  let pink_verts = path_to_verts(_pink_path);
-  // console.log(pink_verts);
-  let pink_centroid = get_centeroid(pink_verts);
-  // console.log(pink_centroid);
-  // console.log(scale);
-  _time += 0.01;
-  for (let i = 0; i < pink_verts.length; i++) {
-    let vector = get_unit_vector(pink_centroid.x, pink_centroid.y, pink_verts[i].x, pink_verts[i].y);
-    let offset = i;
-    if (i == 0) { offset = pink_verts.length-1; };
-    let scale = .2 * Math.round(Math.sin(_time + offset) * 5) / 5;
-    pink_verts[i].x += scale * vector.x;
-    pink_verts[i].y += scale * vector.y;
+  if (!_do_logo_anim) {
+    return;
   }
-  _pink_path = verts_to_path(pink_verts);
+  _time += 0.05;
+  _pink_path = wobble_path(_pink_path);
+  _purple_path = wobble_path(_purple_path);
+
+  // let pink_verts = path_to_verts(_pink_path);
+  // // console.log(pink_verts);
+  // let pink_centroid = get_centeroid(pink_verts);
+  // // console.log(pink_centroid);
+  // // console.log(scale);
+  // _time += 0.01;
+  // for (let i = 0; i < pink_verts.length; i++) {
+  //   let vector = get_unit_vector(pink_centroid.x, pink_centroid.y, pink_verts[i].x, pink_verts[i].y);
+  //   let offset = i;
+  //   if (i == 0) { offset = pink_verts.length-1; };
+  //   let scale = .2 * Math.round(Math.sin(_time + offset) * 5) / 5;
+  //   pink_verts[i].x += scale * vector.x;
+  //   pink_verts[i].y += scale * vector.y;
+  // }
+  // _pink_path = verts_to_path(pink_verts);
+  // let pink_centroid = get_centeroid(path_to_verts(_pink_path));
+  // let rotate_str = `transform="rotate(${_time * 2} ${pink_centroid.x} ${pink_centroid.y})"`;
   
-  let svg_text = `<svg width="250px" viewBox="-50 -50 359 384" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="margin-top: 150px;fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  let svg_text = `
+    <svg width="350px" viewBox="-50 -50 429 484" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" 
+      style="margin-top: 50px;fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
       <g transform="matrix(1,0,0,1,-6434.47,-1948.64)">
           <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Pink blob  -->
               <g transform="matrix(1,0,0,1,-5965.4,-1849.84)">
@@ -89,7 +130,7 @@ function animate_landing_logo() {
           </g>
           <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Blue blob  -->
               <g transform="matrix(0.545065,0.838394,-0.838394,0.545065,-1201.11,-6434.6)">
-                  <path d="M6735.02,2025.59C6735.93,1993.81 6677.83,1961.57 6636.07,1961.35C6594.31,1961.13 6436.35,2028.31 6453.6,2079.15C6470.85,2129.98 6582.51,2277.05 6737.74,2221.67C6807.57,2180.82 6699.53,2144.18 6697.23,2116.05C6700.74,2082.12 6734.11,2057.36 6735.02,2025.59Z" style="fill:rgb(83,25,96);"/>
+                  <path d="${path_to_string(_purple_path)}" style="fill:rgb(83,25,96);"/>
               </g>
           </g>
           <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--     Can     -->
@@ -101,12 +142,11 @@ function animate_landing_logo() {
           </g>
       </g>
       <defs>
-          <image id="_Image2" width="586px" height="911px" href="/assets/can-only.png"/>
+          <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png"/>
       </defs>
     </svg>`;
-  let svg_container = document.getElementById('svg-container').innerHTML = svg_text;
-  // requestAnimationFrame(animate_landing_logo);
-
+  document.getElementById('svg-container').innerHTML = svg_text;
+  requestAnimationFrame (animate_landing_logo);
 }
 
 function render_landing() {
@@ -127,6 +167,7 @@ function render_landing() {
   // setInterval(() => {
   //   // requestAnimationFrame(animate_landing_logo);
   // }, 100);
+  _do_logo_anim = true;
   animate_landing_logo();
 
 }

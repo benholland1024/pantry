@@ -37,6 +37,8 @@ function boot_table_maker() {
   }
   unrender_all();
 
+  //  Reset table name, specifically for when going from the editor to the creator.
+  if (document.getElementById('table-name-input')) {document.getElementById('table-name-input').value = '';}
   render_table_maker(); //  Render the table. 
   render_side_bar();
 }
@@ -153,10 +155,6 @@ function update_column_datatype() {
   }
 }
 
-
-function to_snakecase(str) {
-  return str.toLowerCase().replaceAll(' ', '-')
-}
 
 ////
 ////  DATA HANDLING - table def and columns
