@@ -142,7 +142,10 @@ function animate_landing_logo() {
           </g>
       </g>
       <defs>
-          <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png"/>
+          <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png" 
+            title="A can of DataPantry soup."
+            alt="A soup can with 'DataPantry' written on it, in the style of a Campbell's soup can."
+          />
       </defs>
     </svg>`;
   document.getElementById('svg-container').innerHTML = svg_text;

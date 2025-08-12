@@ -179,10 +179,27 @@ function api_routes(url, req, res) {
 //    Param: /api/all-databases?user=my-username
 GET_routes['/api/all-databases'] = function(data, res) {
   let db_names = fs.readdirSync(`${__dirname}/databases/${data.username}`);
+  let response = { error: false, data: {} };
   for (let i = 0; i < db_names.length; i++) {
-    db_names[i] = path.parse(db_names[i]).name;
+    db_names[i] = path.parse(db_names[i]).name; //  Gets a list like ['db_name1, 'db_name2']
+    let metadata;                               //  Now we'll get the API key for each DB
+    try {
+      if (fs.existsSync(`${__dirname}/databases/${data.username}/metadata.json`)) {
+        metadata = fs.readFileSync(`${__dirname}/databases/${data.username}/metadata.json`);
+        metadata = JSON.parse(metadata);
+      } else {
+        metadata = {
+          api_key: crypto.randomBytes(32).toString('hex')
+        }
+        fs.writeFileSync(`${__dirname}/databases/${data.username}/metadata.json`, JSON.stringify(metadata));
+      }
+      response.data[db_names[i]] = metadata;
+    } catch (err) {
+      response.error = true;
+      response.msg = err.msg;
+    }
   }
-  api_response(res, 200, JSON.stringify(db_names));
+  api_response(res, 200, JSON.stringify(response));
 }
 
 //  Get all table names from a database. 
@@ -247,7 +264,7 @@ GET_routes['/api/user-by-session'] = function(params, res) {
 
 
 //  Insert a row into a table.  
-//    Param: /api/insert-table?username=my-username&db_name=my-db&table_name=my-table
+//    Param: /api/insert-row?username=my-username&db_name=my-db&table_name=my-table
 //    Data:  An object with row data. 
 POST_routes['/api/insert-row'] = function(data, res) {
   let username = data._params.username;
@@ -260,7 +277,7 @@ POST_routes['/api/insert-row'] = function(data, res) {
 }
 
 //  Update a row in a table.  
-//    Param: /api/update-table?username=my-username&db_name=my-db&table_name=my-table&id=26
+//    Param: /api/update-row?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  An object with row data. 
 POST_routes['/api/update-row'] = function(data, res) {
   let username = data._params.username;
@@ -275,7 +292,7 @@ POST_routes['/api/update-row'] = function(data, res) {
 }
 
 //  Delete a row from a table.  
-//    Param: /api/delete?username=my-username&db_name=my-db&table_name=my-table&id=26
+//    Param: /api/delete-row?username=my-username&db_name=my-db&table_name=my-table&id=26
 //    Data:  None
 POST_routes['/api/delete-row'] = function(data, res) {
   let username = data._params.username;
@@ -322,7 +339,6 @@ POST_routes['/api/update-table'] = function(data, res) {
   let table_name = data._params.table_name;
   delete data._params
   let response = {};
-  console.log(data);
   let new_table_name = data.name.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
   if (table_name.length == 0 &&              //  If the table doesn't exist, make it.
       !fs.existsSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`)) {  
@@ -355,12 +371,16 @@ POST_routes['/api/update-table'] = function(data, res) {
 
 //  Create a new database (a new folder)
 POST_routes['/api/create-db'] = function(data, res) {
-  let response = {};
+  let response = { err: false };
   try {
+    let db_data = {
+      api_key: crypto.randomBytes(32).toString('hex')
+    }
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}`, {recursive: true}); // Recursive means create parent dirs when needed
+    fs.writeFileSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata.json`, JSON.stringify(db_data))
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata`); 
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/rows`); 
-
+    response.data = db_data;
   } catch (err) {
     response.error = true;
     response.msg = err;
@@ -434,7 +454,6 @@ POST_routes['/api/update-db'] = function(data, res) {
 //    Param: /api/update-db-name
 //    Data: { username, old_name, new_name }
 POST_routes['/api/update-db-name'] = function(data, res) {
-  console.log(data);
   let old_name = data.old_name;
   let new_name = data.new_name;
   let username = data.username;
@@ -454,7 +473,6 @@ POST_routes['/api/update-db-name'] = function(data, res) {
 //    Param: /api/delete-db
 //    Data: { username, db_name }
 POST_routes['/api/delete-db'] = function(data, res) {
-  console.log(data);
   let db_name = data.db_name
   let username = data.username;
   let response = { error: false };

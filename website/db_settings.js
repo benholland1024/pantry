@@ -2,26 +2,38 @@
 ////  DATABASE SETTINGS
 ////
 
-
+//  Runs when you open the db-settings page
 function load_db_settings(db_name, event) {
   if (event) {event.stopPropagation(); }           //  Prevent the schema from opening when the gear is clicked
   _selected_db.name = db_name;
   window.history.pushState({ },"", `/db-settings/${_selected_db.name}`);
   unrender_all();
+
   document.getElementById('db-settings-container').style.display = 'block';
   render_db_settings();
   render_side_bar();
+
+  //  Render API key
+  let key = _db_data[_selected_db.name].api_key;
+  document.getElementById('api-code-container').innerHTML = `<h4>Your API key:</h4>
+    <pre>${key}</pre>
+    <button style="font-size: 0.8em"
+      id="copy-db-api-code"
+      onclick="copyTextToClipboard('${key}'); document.getElementById('copy-db-api-code').innerHTML = 'Copied!';"
+    >Copy this code!</button>`;
+
   //  DB name -- lowercase alphanumeric and _ only
   const username_input = document.getElementById('db-name');
   const username_regex = /^[a-z0-9_]*$/;
   username_input.addEventListener("keydown", event => {
-    if (!username_regex.test(event.key) && !_utility_keys.includes(event.keyCode)) {
+    if (!username_regex.test(event.key) && !_utility_keys.includes(event.key)) {
       event.preventDefault();
       document.getElementById('db-name-error').innerHTML = "Username can only contain lowercase letters, numbers, and underscores.";
     } else {
       document.getElementById('db-name-error').innerHTML = "";
     }
   });
+
 
 }
 
@@ -47,8 +59,8 @@ function update_db_name() {
         document.getElementById('db-name-error').innerHTML = response.msg;
         return;
       }
-      let selected_index = _db_list.indexOf(_selected_db.name);
-      _db_list[selected_index] = new_db_name;
+      _db_data[new_db_name] = _db_data[to_snakecase(_selected_db.name)];
+      delete _db_data[to_snakecase(_selected_db.name)];
       _selected_db.name = new_db_name;
       render_db_settings();
       render_side_bar();
@@ -75,8 +87,7 @@ function delete_db() {
         document.getElementById('db-name-error').innerHTML = response.msg;
         return;
       }
-      let selected_index = _db_list.indexOf(_selected_db.name);
-      _db_list.splice(selected_index, 1);
+      delete _db_data[to_snakecase(_selected_db.name)];
       render_side_bar();
       load_dashboard();
     } else if (http.readyState == 4 && http.status == 404) {

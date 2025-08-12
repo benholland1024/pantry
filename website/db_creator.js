@@ -7,11 +7,12 @@
 function create_db() {
   let new_db_name = 'untitled_db';
   let i = 1;
+  let db_list = Object.keys(_db_data);
   //  Increment i iff the list includes "untitled_db" AND "untitled_db + i"
-  while (_db_list.includes(new_db_name) && _db_list.includes(new_db_name + i) && i < 100) {
+  while (db_list.includes(new_db_name) && db_list.includes(new_db_name + i) && i < 100) {
     i++;
   }
-  if (_db_list.includes(new_db_name)) { new_db_name += i; }
+  if (db_list.includes(new_db_name)) { new_db_name += i; }
   if (i >= 100) { document.getElementById('error').innerHTML = 'Too many DBs!'; return; }
 
 
@@ -24,7 +25,7 @@ function create_db() {
     if (http.readyState == 4 && http.status == 200) {
       let response = JSON.parse(http.responseText);
       if (!response.error) {
-        _db_list.push(new_db_name);
+        _db_data[new_db_name]= response.data;
         render_side_bar();
         load_db_settings(new_db_name);
       } else {

@@ -14,8 +14,9 @@
     <!---------------->
     <div id="side-bar">
       <h1 id="side-bar-title" onclick="load_dashboard()">&#129387; DataPantry </h1>
-      <h3 id="side-bar-subtitle">your databases:</h3>
+      <h3 id="side-bar-subtitle">Your Databases:</h3>
       <div id="db-list"><!-- Insert table names here --></div>
+      <h3 id="side-bar-options">Dashboard</h3>
     </div>
 
     <!------------------------------------>
@@ -53,7 +54,13 @@
       <!--  Dashboard  -->
       <!----------------->
       <div id="dashboard">
-        <div id="api-code-container">
+        <div id="dash-db-list-container">
+          <h4>Your databases:</h4>
+          <div id="dash-db-list">
+            <div class="dash-db dash-db-empty"><br/>+ Create a Database</div>
+          </div>
+        </div>
+        <!-- <div id="api-code-container">
           <h4>Your API key:</h4>
           <pre>
 <span class="pink">Pantry</span>.<span class="yellow">config</span>({
@@ -61,13 +68,8 @@
   <span class="yellow">key</span>: <span class="blue">'ajv4jv24n.13jk;i08vzuo!uoh'</span>
 })</pre>
           <button style="font-size: 0.8em">Copy this code!</button>
-        </div>
-        <div id="dash-db-list-container">
-          <h4>Your databases:</h4>
-          <div id="dash-db-list">
-            <div class="dash-db dash-db-empty"><br/>+ Create a Database</div>
-          </div>
-        </div>
+        </div> -->
+        
       </div>
 
       <!--------------------->
@@ -111,23 +113,28 @@
         <div style="color:var(--error-red)" id="db-name-error"><!-- Error msg here --></div>
         <br/>
         <button onclick="update_db_name()">Update name</button>
+        <br/><br/><br/><hr/>
+
+        <div id="api-code-container">
+          <h4>Your API key:</h4>
+          <pre></pre>
+          <button style="font-size: 0.8em">Copy this code!</button>
+        </div>
         <br/><br/>
-        <br/><hr/>
         <h4><!--Stats:--></h4>
-        <div style="display: block;height: 40vh"></div><hr/>
+        <div style="display: block;height: 30vh"></div><hr/>
         <h4>Danger zone</h4>
 
-        <button style="background-color:var(--red-bg)" onclick="delete_db()">Delete database</button>
+        <button style="background-color:var(--red-bg);margin-bottom: 30px;" onclick="delete_db()">Delete database</button>
       </div>
 
     </div>
 
   </body>
   
-  <script src="/table_creator.js"></script>
-  <script src="/table_editor.js"></script>
   <script src="/landing.js"></script>
   <script src="/dashboard.js"></script>
+  <script src="/utils.js"></script>
   <script src="/settings.js"></script>
   <script src="/row_editor.js"></script>
   <script src="/schema_editor.js"></script>
@@ -137,7 +144,7 @@
   <script>
 
     //  GLOBAL DATA
-    let _db_list =   [];                                     //  List of all database names.
+    let _db_data =   {};                                     //  An object mapping db names to objs like { api_key: 'asdf' } 
     let _selected_db = { name: '' };                         //  The currently selected database.
     let _schema_data = [];                                   //  A list of table objects in the schema. 
     let _table_list = [];                                    //  List of table NAMES belonging to the selected DB. 
@@ -184,72 +191,6 @@
       load_dashboard();
     }
 
-    //  Unrenders all div content.  Used before rendering a new "page".
-    function unrender_all() {
-      document.removeEventListener('mousedown', _event_listeners.mousedown);
-      document.removeEventListener('mouseup', _event_listeners.mouseup);
-      document.removeEventListener('mousemove', _event_listeners.mousemove);
-      document.removeEventListener('wheel', _event_listeners.wheel);
-      document.getElementById('table-display').innerHTML = "";
-      document.getElementById('schema-display').innerHTML = "";
-      document.getElementById('schema-display-container').style.display = "none";
-      document.getElementById('row-editor-container').innerHTML = "";
-      document.getElementById('action-button-container').innerHTML = "";
-      document.getElementById('landing').style.display = 'none';
-      _do_logo_anim = false;
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('user-settings').style.display = 'none';
-      document.getElementById('db-settings-container').style.display = 'none';
-
-    }
-
-    //  Returns HTML for a dropdown list of datatypes. 
-    //   Used in table_creator.js and db_editor.js
-    //   Options: {
-    //     id:         string       The HTML id
-    //     onchange:   function     The reaction to changes
-    //     disabled:   string       Is the dropdown disabled? 
-    //     table_name: string       The table name, which will be ommitted in forein keys
-    //     table_list: array        A list of table names, for foreign keys. 
-    //   }
-    function get_datatype_dropdown(value, opts) {
-      let id = opts.id;
-      let onchange = opts.onchange;
-      let disabled = opts.disabled;
-      let table_name = opts.table_name;
-      let table_list = opts.table_list ? opts.table_list : _table_list;
-
-      let foreign_key_opts = ``;
-
-      // if (value.split('-')[0] == 'fk') {
-      //   console.log(value);
-      // }
-      //  Get the foreign key value options
-      for (let i = 0; i < table_list.length; i++) {
-        if (table_list[i] == table_name) {
-          continue;
-        }
-        foreign_key_opts += `<option value="fk-${i}" ${value == `fk-${i}` ? 'selected' : ''}>FK from: <b>${ table_list[i] }</b></option>`
-      }
-      return `
-        <select id="${id}" value="${value}" onchange="${onchange}" ${disabled ? 'disabled' : ''}>
-          <option value="string" ${value == 'string' ? 'selected' : ''}>String</option>
-          <option value="number" ${value == 'number' ? 'selected' : ''}>Number</option>
-          <option value="bool" ${value == 'bool' ? 'selected' : ''}>Boolean</option>
-          <option value="datetime" ${value == 'datetime' ? 'selected' : ''}>Datetime</option>
-          <option value="date" ${value == 'date' ? 'selected' : ''}>Date</option>
-          <option value="time" ${value == 'time' ? 'selected' : ''}>Time</option>
-          <option value="file" ${value == 'file' ? 'selected' : ''}>File</option>
-          <option value="bytes" ${value == 'bytes' ? 'selected' : ''}>Bytes</option>
-          <option disabled>Foreign Keys:</option>
-          ${foreign_key_opts}
-        </select>`;
-    }
-
-    //  Convert any type of name into a snakecase name. Used lots of places.
-    function to_snakecase(str) {
-      return str.toLowerCase().replaceAll(' ', '-')
-    }
 
 
     ////
@@ -355,33 +296,46 @@
     //  First start up the side bar. 
     //    This gets the databases. 
     function boot_side_bar() {
-      Pantry.get_all_databases(_current_user.username, function (response) {
-        if (!response.error) {
-          _db_list = response;
-          render_side_bar();
-          // if (_db_list) { load_database(_db_list[0]);  }  //  Load the first table on startup
-        } else {
-          document.getElementById('error').innerHTML = response.msg;
+      //  Get all db data
+      http.open("GET", `/api/all-databases?username=${_current_user.username}`);
+      http.send();
+      http.onreadystatechange = (e) => {
+        if (http.readyState == 4 && http.status == 200) {
+          let response = JSON.parse(http.responseText);
+          if (!response.error) {
+            _db_data = response.data;
+            render_side_bar();
+            //  The dashboard also relies on this data, so if we're on that page, refresh it. 
+            if (window.location.pathname.split('/')[1] == 'dashboard') {
+              render_dashboard();
+            }
+          } else {
+            document.getElementById('error').innerHTML = response.msg;
+          }
         }
-      });
+      }
+
     }
 
     //  This renders all the side bar components.  Used any time a new DB or table is selected. 
     function render_side_bar() {
       document.getElementById('side-bar-title').innerHTML = '&#129387; DataPantry';
+      let selected_class = window.location.pathname.split('/')[1] == 'dashboard' ? 'selected' : '';
+      document.getElementById('side-bar-options').innerHTML = `<div class="${selected_class}" onclick="load_dashboard()">Dashboard</div>`
       document.getElementById('side-bar-subtitle').innerHTML = 'Your Databases:'
       document.getElementById('side-bar').style.width = '300px';
       document.getElementById('side-bar').style['min-width'] = '300px';
       document.getElementById('db-list').innerHTML = '';
-      for (let i = 0; i < _db_list.length; i++) {
-        let selected_class = 'selected';
-        if (_selected_db.name != _db_list[i]) {  selected_class = ''; }
-        document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${_db_list[i]}')">
-          ${_db_list[i]} 
-          <span class="db-setting-icon" onclick="load_db_settings('${_db_list[i]}', event)">&#9881;<!-- gear icon  --></span>
+      let db_list = _db_data ? Object.keys(_db_data) : [];
+      for (let i = 0; i < db_list.length; i++) {
+        selected_class = 'selected';
+        if (_selected_db.name != db_list[i]) {  selected_class = ''; }
+        document.getElementById('db-list').innerHTML += `<div class="db-name ${selected_class}" onclick="load_database('${db_list[i]}')">
+          ${db_list[i]} 
+          <span class="db-setting-icon" onclick="load_db_settings('${db_list[i]}', event)">&#9881;<!-- gear icon  --></span>
         </div>`;
         //  Render list of DB tables, if the DB is selected:
-        if (_selected_db.name == _db_list[i]) {
+        if (_selected_db.name == db_list[i]) {
           for (let j = 0; j < _table_list.length; j++) {
             selected_class = '';
             if (_selected_table.metadata && _table_list[j] == to_snakecase(_selected_table.metadata.name)) {  selected_class = 'selected';  }
@@ -551,7 +505,11 @@
       --content-bg-light2: hsl(from var(--content-bg) h s calc(l + 10));
       --content-bg-light3: hsl(from var(--content-bg) h s calc(l + 15));
 
+      --content-bg-alt: hsl(180, 57%, 15%);
+      --content-bg-alt-light2: hsl(from var(--content-bg-alt) h calc(s - 40) calc(l + 10));;
+
       --action-bg: rgb(43, 3, 38);
+      --action-bg-light1: hsl(from var(--action-bg) h calc(s - 40) calc(l + 5));
       --red-bg: rgb(126, 12, 27);
 
       --error-red: rgb(223, 91, 91);
@@ -614,10 +572,13 @@
     .db-setting-icon:hover {
       transform: scale(1.3);
     }
-    .table-name, .create-new-table, .db-name, .create-new-database {
+    .table-name, .create-new-table, .db-name, .create-new-database, #side-bar-options div {
       cursor: pointer;
       opacity: 0.5;
       overflow: ellipse;
+    }
+    .create-new-table, .create-new-database {
+      font-weight: bold;
     }
     .table-name, .create-new-table {  /*  These are indented */
       padding-left: 35px !important;
@@ -635,6 +596,16 @@
     .table-name:hover, .create-new-table:hover, .db-name:hover, .create-new-database:hover {
       background: var(--content-bg-desat-light2);
       color: white;
+      opacity: 1;
+    }
+    #side-bar-options {
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+    }
+    #side-bar-options div.selected {
+      background: var(--content-bg-desat-light1);
+      font-weight: bold;
       opacity: 1;
     }
 
@@ -748,6 +719,7 @@
     }
     #dash-db-list {
       display: flex;
+      flex-flow: row wrap;
       margin-bottom: 10px;
     }
     .dash-db {
@@ -756,11 +728,31 @@
       padding: 10px;
       box-sizing: border-box;
       border-radius: 10px;
+      text-align: center;
+      /* cursor: pointer; */
+      background: var(--content-bg-alt);
+      margin: 5px;
+      box-shadow: var(--box-shadow);
+      color: rgba(255, 255, 255, 0.329);
+    }
+    .dash-db:nth-child(odd) {
+      background: var(--content-bg-alt-light2);
+    }
+    .dash-db:hover {
+      filter: brightness(1.2);
+      color: white;
+    }
+    .dash-db button {
+      opacity: 0.5;
+    }
+    .dash-db:hover button {
+      opacity: 1;
     }
     .dash-db-empty {
       border: dashed 2px rgba(255, 255, 255, 0.329);
       color: rgba(255, 255, 255, 0.329);
-      text-align: center;
+      background: none !important;
+      box-shadow: none;
       cursor: pointer;
     }
     .dash-db-empty:hover {
