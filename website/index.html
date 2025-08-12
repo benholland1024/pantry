@@ -34,23 +34,15 @@
       <!--  Landing  -->
       <!--------------->
       <div id="landing" style="display:none;">
-        <!-- <img 
-          src="/assets/DataPantryLogo.svg" 
-          width="250px"
-          alt="A picture of a can of soup that says 'DataPantry' in the style of the Campbell's soup logo."
-        /> -->
-        <div id="svg-container">
-          
-        </div>
+        <div id="svg-container"><!--  Animated SVG logo is inserted here.  --></div>
       
         <h2>Cloud database management. Easy to use. 100% free.</h2>
         <p><i>
-          *This is a personal, learning project. I don't gaurantee your data is secure because I haven't spent enough time on the project. 
-          I do plan to improve and maintain it, and I appreciate anyone willing to try it out!
+          Still in beta! Send feedback to <a href="mailto:benholland1024@gmail.com">benholland1024@gmail.com</a>
         </i></p>
         <p style="opacity: 0.5"><i>
-          If you're interested, feel free to <a href="github.com/benholland1024/pantry" target="_blank">contribute</a>!
-          This is a dependency-less project written in NodeJS, if that's your thing. 
+          You can also <a href="github.com/benholland1024/pantry" target="_blank">contribute</a>!
+          This is a dependency-less NodeJS project, if that's your thing. 
         </i></p>
         <br/>
         <button onclick="render_register_input()" id="landing-reg-btn">Register to create your first database!</button>
@@ -659,6 +651,7 @@
     #top-bar {
       width: 100%;
       position: sticky;
+      z-index: 3;
       top: 0px;
       background: var(--content-bg-desat-dark1);
       padding: 10px 20px;
@@ -676,7 +669,7 @@
 
     /*  Log in   */
     #user-auth {
-      display: relative;
+      position: relative;
       z-index: 3;
     }
     #auth-input-box {
