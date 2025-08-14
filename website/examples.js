@@ -19,7 +19,7 @@ function render_examples() {
       <h3 style="margin-bottom:0px;text-align: center;"><span style="color:var(--pink)">Webpages</span> talking to DataPantry</h3>
       <ul>
         <li onclick="render_vanilla_html_ex()" class="${_current_example == 'vanillajs' ? 'selected-ex' : ''}">Using vanilla web JS</li>
-        <li>Using Axios</li>
+        <li class="non-active-example">Using Axios (coming soon!)</li>
         <li class="non-active-example">Using VueJS + Axios (coming soon!)</li>
         <li class="non-active-example">Using React + Axios (coming soon!)</li>
       </ul>
@@ -27,7 +27,7 @@ function render_examples() {
     <div class="rounded-container" style="width:100%">
       <h3 style="margin-bottom:0px;text-align: center;"><span style="color:var(--pink)">Servers</span> talking to DataPantry</h3>
       <ul>
-        <li>Using vanilla NodeJS</li>
+        <li class="non-active-example">Using vanilla NodeJS (coming soon!)</li>
         <li class="non-active-example">Using ExpressJS (coming soon!)</li>
         <li class="non-active-example">Using Django (coming soon!)</li>
       </ul>
@@ -81,10 +81,11 @@ function get_escaped_html(unescaped_html) {
 //    @B = blue
 //    @G = green
 //    @O = orange
+//    @H = highlight
 function syntax_highlight(str) {
   return str.replaceAll('@P', '<span class="pink">').replaceAll('@Y', '<span class="yellow">')
     .replaceAll('@B', '<span class="blue">').replaceAll('@G', '<span class="green">').replaceAll('@O', '<span class="orange">')
-    .replaceAll('@/', '</span>');
+    .replaceAll('@H', '<span class="highlight">').replaceAll('@/', '</span>');
 }
 
 //  A lazy partial syntax highlighter for JS.  
@@ -176,8 +177,12 @@ function render_vanilla_html_ex() {
       <p>Vanilla JS is less succinct than using libraries like Axios. I enjoy it because it feels lower-level.</p>
       <p>
         Here's how you can write a comments section using DataPantry in a single .html file.  
-        To make this example, you'd need to create a database titled "blog", with a table titled "comments".</p>
+        To make this example, you'd need to create a database titled "blog", with a table titled "comments".
         You'd also need to use your API key.
+      </p>
+      <p>
+        The <span class="highlight">highlighted</span> words are the the parts you'll need to replace, depending
+        on the details of your account and database.
       </p>
       <code>index.html</code>
       <pre id="code-example-1"></pre>
@@ -195,7 +200,7 @@ function render_vanilla_html_ex() {
 
     <!--  In this section, we'll let the user add a new comment.  -->
     <h2>Add a new comment:</h2>
-    Username: <input id="username" placeholder="mickey_mouse"/><br/>
+    Username: <input id="comment-username" placeholder="mickey_mouse"/><br/>
     <textarea id="new-comment" placeholder="New comment here"></textarea><br/>
     <button onclick="submit_comment()">Submit comment</button>
 
@@ -209,14 +214,18 @@ function render_vanilla_html_ex() {
   let js = highlight_js(
     `
   const http = new XMLHttpRequest(); //  Needed for making API calls
-  const API_key = "my-api-key";      //  Replace this with your real API key!
+  const API_key = "@Hmy-api-key@/";      //  Replace this with your real API key!
+  const username = "@Hmy_username@/";    //  Replace this with your real username!
+  const db_name = "@Hblog@/";            //  Replace this with your real database name!
+  const table_name = "@Hcomments@/";     //  Replace this with your real table name!
 
   //  Run this when the page loads to get all the posted comments.
   function get_comments() {
     //  Open an HTTP request for a table.
     http.open(
       "GET", 
-      "https://datapantry.org/api/table?username=my-username&db_name=blog&table_name=comments&api=" + API_key
+      \`https://datapantry.org/api/table?\` + 
+      \`username=\${username}&db_name=\${db_name}&table_name=\${table_name}&api=\${API_key}\`
     );
     //  Send the http request:
     http.send();
@@ -230,10 +239,10 @@ function render_vanilla_html_ex() {
         //  Each row represents a comment. Iterate through them!
         for (let i = 0; i < comments.length; i++) {
           //  Insert each comment's username and text on the page.
-          document.getElementById('comment-container').innerHTML =+ \`
+          document.getElementById('comment-container').innerHTML += \`
             &lt;div class="comment"&gt;
-              &lt;div class="comment-username"&gt;\${comments[i].username}&lt;/div&gt;
-              &lt;div class="comment-text"&gt;\${comments[i].text}&lt;/div&gt;
+              &lt;div class="comment-username"&gt;&lt;b&gt;Username: &lt;/b&gt;\${comments[i].username}&lt;/div&gt;
+              &lt;div class="comment-text"&gt;&lt;b&gt;Comment: &lt;/b&gt;\${comments[i].text}&lt;/div&gt;
             &lt;/div&gt;\`;
         }
       }
@@ -246,12 +255,13 @@ function render_vanilla_html_ex() {
     //  We'll make a new http call - this time, a POST call.
     http.open(
       "POST", 
-      "https://datapantry.org/api/insert-row?username=my-username&db_name=blog&table_name=comments&api=" + API_key
+      \`https://datapantry.org/api/insert-row?\` + 
+      \`username=\${username}&db_name=\${db_name}&table_name=\${table_name}&api=\${API_key}\`
     );
     //  We'll send the comment data here.
-    let username = document.getElementById('username').value;
+    let comment_username = document.getElementById('comment-username').value;
     let comment_text = document.getElementById('new-comment').value;
-    http.send(JSON.stringify({ username: username, text: comment_text }));
+    http.send(JSON.stringify({ username: comment_username, text: comment_text }));
     //  Now, we wait for confirmation from the server!
     http.onreadystatechange = (e) => {
       //  If we recieved a reply successfully...
@@ -262,10 +272,10 @@ function render_vanilla_html_ex() {
         //  Each row represents a comment. Iterate through them!
         for (let i = 0; i < comments.length; i++) {
           //  Insert each comment's username and text on the page.
-          document.getElementById('comment-container').innerHTML =+ \`
+          document.getElementById('comment-container').innerHTML += \`
             &lt;div class="comment"&gt;
-              &lt;div class="comment-username"&gt;\${comments[i].username}&lt;/div&gt;
-              &lt;div class="comment-text"&gt;\${comments[i].text}&lt;/div&gt;
+              &lt;div class="comment-username"&gt;&lt;b&gt;Username: &lt;/b&gt;\${comments[i].username}&lt;/div&gt;
+              &lt;div class="comment-text"&gt;&lt;b&gt;Comment: &lt;/b&gt;\${comments[i].text}&lt;/div&gt;
             &lt;/div&gt;\`;
         }
       }
@@ -273,6 +283,7 @@ function render_vanilla_html_ex() {
   }
   `
   );
+  console.log(js)
   js = syntax_highlight(js);
   vanillajs_html_string = vanillajs_html_string.replace('insert-script-here', js);
   document.getElementById('code-example-1').innerHTML = vanillajs_html_string

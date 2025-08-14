@@ -3,6 +3,11 @@
 var path = require('path');
 var fs   = require('fs');
 
+//  Gets a snakecase version of a string
+function to_snakecase(str) {
+  return str.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
+}
+
 //  Database class!  
 //    Get a table with this syntax:
 //      let user_table = Database('pantry-housekeeping').Table('users');
@@ -48,19 +53,19 @@ class Table {
     }
     for (let i = 0; i < this.metadata.columns.length; i++) {
       let column_data = this.metadata.columns[i];
-      if (column_data.unique === true && !(column_data.required === false && !row_data[column_data.snakecase])) {
+      if (column_data.unique === true && !(column_data.required === false && !row_data[to_snakecase(column_data.name)])) {
         for (let j = 0; j < this.rows.length; j++) {
           if (j == index_to_skip) {
             continue;
           }
-          if (this.rows[j][column_data.snakecase] == row_data[column_data.snakecase]) {
+          if (this.rows[j][to_snakecase(column_data.name)] == row_data[to_snakecase(column_data.name)]) {
             response.error = true;
             response.msg = `${column_data.name} must be unique.`;
             return response;
           }
         }
       }
-      if (column_data.require === true && !row_data[column_data.snakecase]) {
+      if (column_data.require === true && !row_data[to_snakecase(column_data.name)]) {
         response.error = true;
         response.msg = `${column_data.name} is required.`;
         return response;
