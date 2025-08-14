@@ -108,36 +108,10 @@ function animate_landing_logo() {
   _pink_path = wobble_path(_pink_path);
   _purple_path = wobble_path(_purple_path);
 
-  let svg_text = `
-    <svg width="350px" viewBox="-50 -50 429 484" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" 
-      style="margin-top: 50px;fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
-      <g transform="matrix(1,0,0,1,-6434.47,-1948.64)">
-          <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Pink blob  -->
-              <g transform="matrix(1,0,0,1,-5965.4,-1849.84)">
-                  <path id="svg-path-1" d="${path_to_string(_pink_path)}" style="fill:rgb(42,25,96);"/>
-              </g>
-          </g>
-          <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Blue blob  -->
-              <g transform="matrix(0.545065,0.838394,-0.838394,0.545065,-1201.11,-6434.6)">
-                  <path d="${path_to_string(_purple_path)}" style="fill:rgb(83,25,96);"/>
-              </g>
-          </g>
-          <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--     Can     -->
-              <g transform="matrix(0.554038,0,0,0.554038,432.278,34.14)">
-                  <g transform="matrix(0.525795,0,0,0.525795,-13300.1,-5217.61)">
-                      <use xlink:href="#_Image2" x="25720" y="10241" width="586px" height="911px"/>
-                  </g>
-              </g>
-          </g>
-      </g>
-      <defs>
-          <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png" 
-            title="A can of DataPantry soup."
-            alt="A soup can with 'DataPantry' written on it, in the style of a Campbell's soup can."
-          />
-      </defs>
-    </svg>`;
-  document.getElementById('svg-container').innerHTML = svg_text;
+  document.getElementById('purple-path-container').innerHTML = `<path id="svg-path-1" d="${path_to_string(_pink_path)}" style="fill:rgb(42,25,96);"/>`;
+  document.getElementById('pink-path-container').innerHTML = `<path d="${path_to_string(_purple_path)}" style="fill:rgb(83,25,96);"/>`;
+
+  // document.getElementById('svg-container').innerHTML = svg_text;
   requestAnimationFrame (animate_landing_logo);
 }
 
