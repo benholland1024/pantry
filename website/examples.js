@@ -6,6 +6,7 @@ let _current_example = '';
 
 function load_examples() {
   window.history.pushState({ },"", `/examples`);
+  _selected_db = { name: '' };
   unrender_all();
   document.getElementById('examples').style.display = 'block';
   render_examples();
@@ -243,6 +244,7 @@ function render_vanilla_html_ex() {
             &lt;div class="comment"&gt;
               &lt;div class="comment-username"&gt;&lt;b&gt;Username: &lt;/b&gt;\${comments[i].username}&lt;/div&gt;
               &lt;div class="comment-text"&gt;&lt;b&gt;Comment: &lt;/b&gt;\${comments[i].text}&lt;/div&gt;
+              &lt;br/b&gt;
             &lt;/div&gt;\`;
         }
       }
@@ -266,18 +268,20 @@ function render_vanilla_html_ex() {
     http.onreadystatechange = (e) => {
       //  If we recieved a reply successfully...
       if (http.readyState == 4 && http.status == 200) {
-        //  ...the reply will have our table data, including rows, columns, etc!
-        let table = JSON.parse(http.responseText);
-        let comments = table.rows;
-        //  Each row represents a comment. Iterate through them!
-        for (let i = 0; i < comments.length; i++) {
-          //  Insert each comment's username and text on the page.
-          document.getElementById('comment-container').innerHTML += \`
-            &lt;div class="comment"&gt;
-              &lt;div class="comment-username"&gt;&lt;b&gt;Username: &lt;/b&gt;\${comments[i].username}&lt;/div&gt;
-              &lt;div class="comment-text"&gt;&lt;b&gt;Comment: &lt;/b&gt;\${comments[i].text}&lt;/div&gt;
-            &lt;/div&gt;\`;
+        ///  ...Make sure there's no error. 
+        let response = JSON.parse(http.responseText);
+        if (response.error) {
+          console.warn(response.error);
+          return;
         }
+        //  If we're error free, insert our new post.
+        document.getElementById('comment-container').innerHTML += \`
+          &lt;div class="comment"&gt;
+            &lt;div class="comment-username"&gt;&lt;b&gt;Username: &lt;/b&gt;\${comment_username}&lt;/div&gt;
+            &lt;div class="comment-text"&gt;&lt;b&gt;Comment: &lt;/b&gt;\${comment_text}&lt;/div&gt;
+            &lt;br/&gt;
+          &lt;/div&gt;\`;
+        
       }
     }
   }
