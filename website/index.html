@@ -54,22 +54,22 @@
       <!--  Dashboard  -->
       <!----------------->
       <div id="dashboard">
-        <div id="dash-db-list-container">
+        <div id="dash-db-list-container" class="rounded-container">
           <h4>Your databases:</h4>
           <div id="dash-db-list">
             <div class="dash-db dash-db-empty"><br/>+ Create a Database</div>
           </div>
         </div>
-        <!-- <div id="api-code-container">
-          <h4>Your API key:</h4>
-          <pre>
-<span class="pink">Pantry</span>.<span class="yellow">config</span>({
-  <span class="yellow">user</span>: <span class="blue">'admin'</span>,
-  <span class="yellow">key</span>: <span class="blue">'ajv4jv24n.13jk;i08vzuo!uoh'</span>
-})</pre>
-          <button style="font-size: 0.8em">Copy this code!</button>
-        </div> -->
-        
+      </div>
+
+      <!----------------->
+      <!--   Examples  -->
+      <!----------------->
+      <div id="examples">
+        <div id="examples-table-of-contents" style="display: flex; justify-content: space-between;">
+          <!--  Insert list of examples  -->
+        </div>
+        <div id="example-container"><!-- Insert examples here  --></div>
       </div>
 
       <!--------------------->
@@ -117,7 +117,7 @@
         <button onclick="update_db_name()">Update name</button>
         <br/><br/><br/><hr/>
 
-        <div id="api-code-container">
+        <div id="api-code-container" class="rounded-container">
           <h4>Your API key:</h4>
           <pre></pre>
           <button style="font-size: 0.8em">Copy this code!</button>
@@ -136,6 +136,7 @@
   
   <script src="/landing.js"></script>
   <script src="/dashboard.js"></script>
+  <script src="/examples.js"></script>
   <script src="/utils.js"></script>
   <script src="/settings.js"></script>
   <script src="/row_editor.js"></script>
@@ -533,6 +534,13 @@
 
       --error-red: rgb(223, 91, 91);
       --success-green: rgb(97, 202, 97);
+
+      /*  Syntax highlighting */
+      --green: rgb(112, 163, 92);
+      --pink: pink;
+      --yellow: rgb(245, 245, 174);
+      --orange: rgb(236, 158, 113);
+      --blue: rgb(123, 194, 194);
     }
     body.light-mode {
       color: var(--text-color);
@@ -549,11 +557,32 @@
       --content-bg-alt: hsl(194, 78%, 49%);
 
       --action-bg: rgb(203, 156, 221);
-      --red-bg: rgb(155, 8, 27);
+      --red-bg: rgb(255, 112, 131);
 
       --error-red: rgb(212, 147, 147);
       --success-green: rgb(97, 202, 97);
 
+      --green: rgb(55, 92, 41);
+      --pink: rgb(165, 37, 59);
+      --yellow: rgb(119, 82, 2);
+      --orange: rgb(139, 56, 8);
+      --blue: rgb(64, 74, 117);
+
+    }
+    /*  This is used in several places - dashboard, db settings, examples */
+    .rounded-container {
+      text-align: left;
+      margin: 20px;
+      padding: 10px;
+      background: var(--content-bg-light1);
+      border-radius: 10px;
+      box-shadow: var(--box-shadow);
+    }
+    .rounded-container pre {
+      background: var(--content-bg-dark1);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 1.2em;
     }
 
     /********************/
@@ -594,6 +623,7 @@
     #side-bar div {
       padding: 10px;
     }
+
     .db-name {
       position: relative;
     }
@@ -642,6 +672,8 @@
       position: absolute;
       bottom: 0px;
       width: 100%;
+      z-index: 4;
+      background: var(--content-bg-desat-dark1);
     }
     #side-bar-options div.selected {
       background: var(--content-bg-desat-light1);
@@ -735,27 +767,21 @@
       height: calc(100vh - 50px);
       display: none;
     }
-    #api-code-container, #dash-db-list-container {
-      text-align: left;
-      margin: 20px;
-      padding: 10px;
-      background: var(--content-bg-light1);
-      border-radius: 10px;
-      box-shadow: var(--box-shadow);
-    }
-    #api-code-container pre {
-      background: var(--content-bg-dark1);
-      padding: 10px;
-      border-radius: 10px;
-    }
+    
     .pink {
-      color: pink;
+      color: var(--pink);
     }
     .yellow {
-      color: rgb(245, 245, 174);
+      color: var(--yellow);
     }
     .blue {
-      color: rgb(123, 194, 194);
+      color: var(--blue);
+    }
+    .green {
+      color: var(--green);
+    }
+    .orange {
+      color: var(--orange);
     }
     #dash-db-list {
       display: flex;
@@ -798,6 +824,28 @@
     .dash-db-empty:hover {
       border: dashed 2px var(--text-color);
       color: var(--text-color);
+    }
+
+
+    /***************/
+    /*  Examples   */
+    /***************/
+    #examples {
+      display: none;
+    }
+    #examples-table-of-contents li {
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+    #examples-table-of-contents li:not(.non-active-example):hover {
+      text-decoration: underline;
+    }
+    .non-active-example {
+      opacity: 0.5;
+      cursor: auto;
+    }
+    .selected-ex {
+      font-weight: bold;
     }
 
       /***************/
@@ -966,7 +1014,16 @@
         linear-gradient(225deg, var(--content-bg) 25%, transparent 25%) -10px 0/ 20px 20px, 
         linear-gradient(315deg, var(--content-bg-transluscent) 25%, transparent 25%) 0px 0/ 20px 20px, 
         linear-gradient(45deg, var(--content-bg) 25%, var(--background) 25%) 0px 0/ 20px 20px;    
-      }
+    }
+    .light-mode #schema-display-container {
+      background: linear-gradient(
+        135deg, 
+        var(--content-bg-light3) 25%, 
+        transparent 25%) -10px 0/ 20px 20px, 
+        linear-gradient(225deg, var(--content-bg-light2) 25%, transparent 25%) -10px 0/ 20px 20px, 
+        linear-gradient(315deg, var(--content-bg-light3) 25%, transparent 25%) 0px 0/ 20px 20px, 
+        linear-gradient(45deg, var(--content-bg-light2) 25%, var(--background) 25%) 0px 0/ 20px 20px;   
+    }
     #schema-display  {
       position: relative;
       height: calc(100vh - 80px);

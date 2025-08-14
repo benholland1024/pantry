@@ -38,8 +38,10 @@ function unrender_all() {
   document.getElementById('landing').style.display = 'none';
   _do_logo_anim = false;
   document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('examples').style.display = 'none';
   document.getElementById('user-settings').style.display = 'none';
   document.getElementById('db-settings-container').style.display = 'none';
+  window.scrollTo(0, 0);
 
 }
 

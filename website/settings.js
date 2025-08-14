@@ -7,6 +7,7 @@
 function load_settings() {
   window.history.pushState({ },"", `/user-settings`);
   unrender_all();
+  render_side_bar();
   render_user_profile_button();  
   open_auth_box = 'none';
   render_settings();

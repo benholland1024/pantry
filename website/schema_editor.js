@@ -33,6 +33,13 @@ function load_schema() {
       if (_schema_data.length >= 1 && typeof _schema_data[0].x_pos != 'number') {
         set_schema_pos();
       }
+      // If any tables don't yet have positions, give them one. 
+      for (let i = 0; i < _schema_data.length; i++) {
+        if (typeof _schema_data[i].x_pos != 'number') {
+          _schema_data[i].x_pos = 10 * i;
+          _schema_data[i].y_pos = 10 * i;
+        }
+      }
       render_schema();
     }
   }
