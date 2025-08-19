@@ -24,6 +24,7 @@ function load_db_settings(db_name, event) {
 
   //  DB name -- lowercase alphanumeric and _ only
   const username_input = document.getElementById('db-name');
+  console.log(_utility_keys);
   const username_regex = /^[a-z0-9_]*$/;
   username_input.addEventListener("keydown", event => {
     if (!username_regex.test(event.key) && !_utility_keys.includes(event.key)) {

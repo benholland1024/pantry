@@ -9,6 +9,11 @@
   </head>
 
   <body>
+
+    <!--  Popup  -->
+    <div id="popup"><!--  Insert popup content here  --></div>
+    <div id="popup-screen" onclick="close_popup();"></div><!--  This is the black translucent screen behind the popup.  -->
+    
     <!---------------->
     <!--  Side bar  -->
     <!---------------->
@@ -159,6 +164,10 @@
 
         <button style="background-color:var(--red-bg);margin-bottom: 30px;" onclick="delete_db()">Delete database</button>
       </div>
+
+      <template id="test-template">
+        <div>Test test test</div>
+      </template>
 
     </div>
 
@@ -411,6 +420,7 @@
     //  Load a list of all tables in a database
     function load_database(db_name) {
       _selected_db.name = db_name;
+      _selected_db.api_key = _db_data[db_name].api_key;
       Pantry.get_all_tables(_current_user.username, db_name, function(response) {
         if (!response.error) {
           _table_list = response;
@@ -613,6 +623,34 @@
       padding: 10px;
       border-radius: 10px;
       font-size: 1.2em;
+    }
+
+
+    /********************/
+    /*  Popup styling   */
+    /********************/
+    #popup {
+      width: 400px;
+      max-width: 100vw;
+      padding: 20px;
+      background: var(--content-bg-light3);
+      position: absolute;
+      left: 0; 
+      right: 0; 
+      margin-inline: auto; 
+      top: 200px;
+      z-index: 6;
+      display: none;
+    }
+    #popup-screen {
+      position: absolute;
+      width: 100%;
+      height: 100vh;
+      z-index: 5;
+      background: rgba(0,0,0,0.5);
+      top: 0px;
+      left: 0px;
+      display: none;
     }
 
     /********************/

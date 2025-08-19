@@ -184,14 +184,14 @@ GET_routes['/api/all-databases'] = function(data, res) {
     db_names[i] = path.parse(db_names[i]).name; //  Gets a list like ['db_name1, 'db_name2']
     let metadata;                               //  Now we'll get the API key for each DB
     try {
-      if (fs.existsSync(`${__dirname}/databases/${data.username}/metadata.json`)) {
-        metadata = fs.readFileSync(`${__dirname}/databases/${data.username}/metadata.json`);
+      if (fs.existsSync(`${__dirname}/databases/${data.username}/${db_names[i]}/metadata.json`)) {
+        metadata = fs.readFileSync(`${__dirname}/databases/${data.username}/${db_names[i]}/metadata.json`);
         metadata = JSON.parse(metadata);
       } else {
         metadata = {
           api_key: crypto.randomBytes(32).toString('hex')
         }
-        fs.writeFileSync(`${__dirname}/databases/${data.username}/metadata.json`, JSON.stringify(metadata));
+        fs.writeFileSync(`${__dirname}/databases/${data.username}/${db_names[i]}/metadata.json`, JSON.stringify(metadata));
       }
       response.data[db_names[i]] = metadata;
     } catch (err) {
@@ -370,9 +370,13 @@ POST_routes['/api/update-table'] = function(data, res) {
 }
 
 //  Create a new database (a new folder)
+//    Param: /api/create-db
+//    Data:  An object like { db_user, db_name }
 POST_routes['/api/create-db'] = function(data, res) {
   let response = { err: false };
   try {
+    if (!data.db_name) { throw error("Missing database name."); return; }
+    else if (!data.db_user) { throw error("Missing database user."); return; }
     let db_data = {
       api_key: crypto.randomBytes(32).toString('hex')
     }
