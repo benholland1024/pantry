@@ -71,11 +71,20 @@ function update_db_name() {
   }
 }
 
+//
+function confirm_delete_db() {
+  open_popup(`
+    <p>
+      All tables and table data will be deleted. 
+      Are you sure you want to delete <span style="color:var(--blue)">${_selected_db.name}</span>?
+    </p>
+    <button onclick="delete_db()">Yes, delete this database</button>&nbsp;
+    <button onclick="close_popup()">No, don't delete</button>
+    `)
+}
+
 //  Delete the database
 function delete_db() {
-  if (!confirm(`All tables and table data will be deleted. Are you sure you want to delete "${_selected_db.name}"?`)) {
-    return;
-  }
   http.open('POST', `/api/delete-db`);
   http.send(JSON.stringify({
     username: _current_user.username,
@@ -94,5 +103,6 @@ function delete_db() {
     } else if (http.readyState == 4 && http.status == 404) {
       document.getElementById('db-name-error').innerHTML = 'Error: API route not available! Contact site admin.';
     }
+    close_popup();
   }
 }

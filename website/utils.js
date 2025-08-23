@@ -42,6 +42,7 @@ function unrender_all() {
   document.getElementById('user-settings').style.display = 'none';
   document.getElementById('db-settings-container').style.display = 'none';
   window.scrollTo(0, 0);
+  close_popup();
 
 }
 

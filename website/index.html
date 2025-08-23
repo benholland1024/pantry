@@ -13,7 +13,7 @@
     <!--  Popup  -->
     <div id="popup"><!--  Insert popup content here  --></div>
     <div id="popup-screen" onclick="close_popup();"></div><!--  This is the black translucent screen behind the popup.  -->
-    
+
     <!---------------->
     <!--  Side bar  -->
     <!---------------->
@@ -162,12 +162,9 @@
         <div style="display: block;height: 30vh"></div><hr/>
         <h4>Danger zone</h4>
 
-        <button style="background-color:var(--red-bg);margin-bottom: 30px;" onclick="delete_db()">Delete database</button>
+        <button style="background-color:var(--red-bg);margin-bottom: 30px;" onclick="confirm_delete_db()">Delete database</button>
       </div>
 
-      <template id="test-template">
-        <div>Test test test</div>
-      </template>
 
     </div>
 
@@ -181,7 +178,9 @@
   <script src="/row_editor.js"></script>
   <script src="/schema_editor.js"></script>
   <script src="/db_creator.js"></script>    <!--  Literally just the "+ Add a Database" button -->
-  <script src="/db_settings.js"></script>   
+  <script src="/db_settings.js"></script> 
+  <script src="/1_popup.js"></script>
+  
 
   <script>
 
@@ -634,6 +633,7 @@
       max-width: 100vw;
       padding: 20px;
       background: var(--content-bg-light3);
+      border-radius: 5px;
       position: absolute;
       left: 0; 
       right: 0; 
@@ -651,6 +651,22 @@
       top: 0px;
       left: 0px;
       display: none;
+    }
+    #loading-anim {
+      margin: 50px 0px;
+      animation: spin 10s linear 0s infinite;
+    }
+    @keyframes spin {
+      0% {
+        transform: scale(2) rotate(0deg);
+      }
+      50% {
+        transform: scale(3) rotate(720deg);
+      }
+      100% {
+        transform: scale(2) rotate(1440deg);
+
+      }
     }
 
     /********************/

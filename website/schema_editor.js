@@ -250,7 +250,7 @@ function render_schema() {
     >
       <input type="text" id="col-name-${i}" value="${table.name}" onchange="_schema_data[${i}].name = event.target.value"/>
       <div class="schema-table-icon table-mover" onmousedown="_selected_schema_table = ${i}">&#10018;</div>
-      <div class="schema-table-icon" onclick="delete_schema_table(${i})">&#128465;</div>
+      <div class="schema-table-icon" onclick="confirm_delete_schema_table(${i})">&#128465;</div>
     </h4>`;
     for (let j = 0; j < table.columns.length; j++ ) {
       let column = table.columns[j];
@@ -305,7 +305,7 @@ function render_schema() {
     &#10227; Reset table positions
   </button>&nbsp;&nbsp;&nbsp;&nbsp;`;
   document.getElementById('action-button-container').innerHTML += `<button onclick="add_table_to_schema()">+ Add a table</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
-  document.getElementById('action-button-container').innerHTML += `<button onclick="update_db()">&#128190; Save changes</button>`;
+  document.getElementById('action-button-container').innerHTML += `<button onclick="confirm_update_db()">&#128190; Save changes</button>`;
 
 }
 
@@ -365,22 +365,38 @@ function add_table_to_schema() {
   requestAnimationFrame(render_schema);
 }
 
+//  Open a popup to confirm that the user wants to delete the schema table
+function confirm_delete_schema_table(index) {
+  open_popup(`
+    <p>Delete the table "${_schema_data[index].name}"?</p>
+    <button onclick="delete_schema_table(${index})" autofocus>Yes, delete it!</button>&nbsp;
+    <button onclick="close_popup()">No, don't delete</button>
+  `);
+}
+
 //  Delete a table
 function delete_schema_table(index) {
-  if (!confirm(`Delete the table "${_schema_data[index].name}"?`)) {
-    return;
-  }
   _schema_data.splice(index, 1);
   requestAnimationFrame(render_schema);
+  close_popup();
+}
+
+//  Prompt the user to confirm whether they want to save the DB changes.
+function confirm_update_db() {
+  open_popup(`
+    <p>
+      Are you sure you want to update the database 
+      <span class="blue">${_selected_db.name}</span>? </p>
+    <p>Row data may be lost!!</p>
+    <br/>
+    <button onclick="update_db()" autofocus>Yes, save changes.</button>&nbsp;
+    <button onclick="close_popup()">No, keep editing</button>`);
 }
 
 //  Update the entire DB, including all the table's metadata if needed 
 function update_db() {
-
-  if (!confirm(`Are you sure you want to update the database "${_selected_db.name}"?  ROW DATA MAY BE LOST!!`)) {
-    return;
-  }
   
+  loading_popup();
   //  Ensure all tables have a snakecase.
   for (let i = 0; i < _schema_data.length; i++) {
     _schema_data[i].snakecase = to_snakecase(_schema_data[i].name)
@@ -398,6 +414,7 @@ function update_db() {
       } else {
         document.getElementById('error').innerHTML = response.msg;
       }
+      close_popup();
     }
   }
 }
