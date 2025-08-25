@@ -6,6 +6,14 @@ function open_popup(html) {
   document.getElementById('popup').style.display = 'block';
   document.getElementById('popup-screen').style.display = 'block';
   document.getElementById('popup').innerHTML = html;
+
+  //  Focus on whatever element has the id "focus"
+  let focusEl = document.getElementById('focus');
+  window.setTimeout(() => {
+    document.activeElement.blur();
+    focusEl ? focusEl.focus() : '';
+  }, 0);
+
 }
 
 function loading_popup() {

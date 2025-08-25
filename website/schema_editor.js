@@ -3,6 +3,7 @@
 ////
 
 let _is_mouse_down = false;
+let _cursor_mode    = 'cursor';      //  Options: 'cursor', 'add-table', 'eraser'
 let _last_x = 0;                    //  These are used for tracking the distance the mouse moves.
 let _last_y = 0;                    //   ^
 let _selected_schema_table = -1;    //  The selected table to move.
@@ -16,7 +17,12 @@ let _pan_y = 0;                     //    ^
 
 const _table_width = 250;
 
-
+/**
+ * Initializes the schema display.
+ *  - Changes the URL, updates side & top bar
+ *  - Gets all table metadata, then calls render_schema()
+ *  - 
+ */
 function load_schema() {
   window.history.pushState({ },"", `/database/${_selected_db.name}`);
   unrender_all();
@@ -41,6 +47,7 @@ function load_schema() {
         }
       }
       render_schema();
+      render_action_bar();
     }
   }
 
@@ -58,6 +65,9 @@ function load_schema() {
   //  Mouse up handler
   _event_listeners.mouseup = function(e) {
     
+    //  
+    //  This first section handles FK line dragging logic
+    //
     let rerender = false;
     //  If we're releasing a fk line, check if we're releasing on an input
     let el;
@@ -83,6 +93,20 @@ function load_schema() {
     _selected_schema_table = -1;
     _selected_fk_output = [-1,-1];
     document.getElementById('schema-display').classList.remove('cursor-grabbing');
+
+    // 
+    //  Here, we'll handle adding a table
+    //
+    let display = document.getElementById('schema-display').getBoundingClientRect();
+    let action_bar = document.getElementById('action-bar').getBoundingClientRect();
+    if (_cursor_mode == 'add-table' && 
+      e.clientX > display.left && 
+      e.clientY > display.top &&
+      e.clientX < action_bar.left) {
+      add_table_to_schema(e.clientX - display.left, e.clientY - display.top);
+    }
+
+
     if (rerender) {     requestAnimationFrame(render_schema);    }
   }
   document.addEventListener('mouseup', _event_listeners.mouseup);
@@ -106,7 +130,14 @@ function load_schema() {
       _schema_data[table_idx].columns[col_idx].fk_y_pos = e.clientY - bounding_box.top;
       requestAnimationFrame(render_schema);
 
-    } //else if (_is_mouse_down) {  //  Pan 
+    } else if (_cursor_mode == 'add-table') {
+      let container = document.getElementById('schema-display').getBoundingClientRect();
+      if (e.clientX < container.left || e.clientY < container.top) {return;}
+      _schema_data[_schema_data.length-1].x_pos = e.clientX - container.left;
+      _schema_data[_schema_data.length-1].y_pos = e.clientY - container.top;
+      render_schema();
+    }
+    //else if (_is_mouse_down) {  //  Pan 
     //   _pan_x += e.clientX - _last_x;
     //   _last_x = e.clientX;
 
@@ -128,9 +159,13 @@ function load_schema() {
     // requestAnimationFrame(render_schema);
   }
   document.addEventListener("wheel", _event_listeners.wheel);
+  document.addEventListener('resize', render_schema);
 }
 
-//  Move a table in reaction to a mousemove event
+/**
+ * Move a table in reaction to a mousemove event
+ * @param {Object} e - Represents the mousemove event.
+ */
 function move_table(e) {
   let x_movement = e.clientX - _last_x;
   _schema_data[_selected_schema_table].x_pos += x_movement;
@@ -204,6 +239,7 @@ function render_schema() {
     return;
   }
 
+  //  Render the SVG container, and the lines between boxes! 
   let svg_container = document.getElementById('schema-display');
   let schema_html = `<svg width="${svg_container.offsetWidth}" height="${svg_container.offsetHeight}" style="z-index: 2;">`;
   for (let i = 0; i < _schema_data.length; i++) {  // Iterate thru tables...
@@ -225,8 +261,10 @@ function render_schema() {
         //  Get the x pos and y pos of the "input destination table"
         let dest_table = _schema_data[column.fk_input_dest];
 
+        let table_el = document.getElementById(`s-table-${i}`);
+        let table_width = table_el ? table_el.offsetWidth : _table_width
         schema_html += `<line 
-          x1="${table.x_pos + _table_width + 10}" 
+          x1="${table.x_pos + table_width + 10}" 
           y1="${table.y_pos + (j*23) + 52 }" 
           x2="${dest_table.x_pos}" 
           y2="${dest_table.y_pos + 52}" 
@@ -237,20 +275,25 @@ function render_schema() {
   }
   schema_html +=  `</svg>`;
 
-  //  Rendering the tables themselves
+  //
+  //  Rendering the tables themselves!
+  //
   let table_list = [];  //  We need this for rendering foreign key options
   for (let i = 0; i < _schema_data.length; i++) {
     table_list.push(_schema_data[i].name);
   }
   for (let i = 0; i < _schema_data.length; i++) {
     let table = _schema_data[i];
-    schema_html += `<div class="schema-table" id="s-table-${i}" style="left: ${table.x_pos}px; top: ${table.y_pos}px;" >`;
+    let ghostly = (_cursor_mode == 'add-table' && i == _schema_data.length-1) ? 'opacity:0.5;' : '';
+    schema_html += `<div class="schema-table" id="s-table-${i}" style="left: ${table.x_pos}px; top: ${table.y_pos}px; ${ghostly}" >`;
+    if (_cursor_mode == 'eraser') {
+      schema_html += `<div class="schema-table-delete-warning" onclick="confirm_delete_schema_table(${i})"></div>`;
+    }
     schema_html += `<h4 
       class="schema-table-name"
     >
       <input type="text" id="col-name-${i}" value="${table.name}" onchange="_schema_data[${i}].name = event.target.value"/>
       <div class="schema-table-icon table-mover" onmousedown="_selected_schema_table = ${i}">&#10018;</div>
-      <div class="schema-table-icon" onclick="confirm_delete_schema_table(${i})">&#128465;</div>
     </h4>`;
     for (let j = 0; j < table.columns.length; j++ ) {
       let column = table.columns[j];
@@ -258,7 +301,7 @@ function render_schema() {
       //  The next line determines whether to add the "connected-input" class to a table.
       let is_selected_input = (to_snakecase(column.name) == 'id' && get_fk_output_from_input(i).table_idx != -1) ? 'connected-input' : '';
 
-      //  The code for the table.
+      //  The code for the table's columns. 
       schema_html += `<div class="schema-table-column">
         ${ to_snakecase(column.name) == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
         <div class="schema-col-name">
@@ -295,6 +338,7 @@ function render_schema() {
     </div>`;
     schema_html += `</div>`;
   }
+
   document.getElementById('schema-display').innerHTML = schema_html;
 
   //  Not currently used (TODO):
@@ -304,10 +348,76 @@ function render_schema() {
   document.getElementById('action-button-container').innerHTML = `<button onclick="set_schema_pos(); render_schema()">
     &#10227; Reset table positions
   </button>&nbsp;&nbsp;&nbsp;&nbsp;`;
-  document.getElementById('action-button-container').innerHTML += `<button onclick="add_table_to_schema()">+ Add a table</button>&nbsp;&nbsp;&nbsp;&nbsp;`;
   document.getElementById('action-button-container').innerHTML += `<button onclick="confirm_update_db()">&#128190; Save changes</button>`;
-
+  
 }
+
+function render_action_bar() {
+
+  let action_bar_html = `
+    <div class="action-bar-icon ${ _cursor_mode == 'cursor' ? 'selected' : '' }" onclick="enter_cursor_mode();">
+      <div class="action-bar-tooltip">Move & edit tables</div>
+      <img src="/assets/cursor.svg" /><!--  mouse cursor icon  -->
+    </div>
+    <div class="action-bar-icon ${ _cursor_mode == 'add-table' ? 'selected' : '' }" onclick="enter_add_table_mode();">
+      <div class="action-bar-tooltip">Add tables</div>
+     <img src="/assets/table.svg" /><!--   table adder icon  -->
+    </div>
+    <div class="action-bar-icon ${ _cursor_mode == 'eraser' ? 'selected' : '' }" onclick="enter_eraser_mode();">
+      <div class="action-bar-tooltip">Delete tables</div>
+      <img src="/assets/eraser.svg" /><!--      eraser icon    -->
+    </div>
+  `;
+  document.getElementById('action-bar').innerHTML = action_bar_html;
+}
+
+/**
+ * Fires when you click the table icon in the action bar. 
+ */
+function enter_add_table_mode() {
+  _cursor_mode = 'add-table';
+  render_action_bar();
+  _schema_data.push({ 
+    name: 'New Table ' + (_schema_data.length + 1),
+    max_id: 0,
+    columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
+    x_pos: _last_x,
+    y_pos: _last_y
+  });
+  _selected_schema_table = _schema_data.length - 1;
+  document.getElementById('schema-display').classList.add('cursor-crosshair');
+}
+
+/**
+ * Called in enter_cursor_mode() and enter_eraser_mode().  
+ * Removes the ghost table and pointer cursor.. 
+ */
+function exit_add_table_mode() {
+  if (_cursor_mode != 'add-table') { return; }
+  _schema_data.pop();
+  document.getElementById('schema-display').classList.remove('cursor-crosshair');
+}
+
+/**
+ * Called when you click the cursor icon in the action bar.
+ */
+function enter_cursor_mode() {
+  exit_add_table_mode();
+  _cursor_mode = 'cursor';
+  render_action_bar();
+}
+
+/**
+ * Called when you click the eraser icon in the action bar. 
+ */
+function enter_eraser_mode() {
+  exit_add_table_mode();
+  _cursor_mode = 'eraser';
+  render_action_bar();
+  document.getElementById('schema-display').classList.add('eraser-mode');
+  render_schema();
+}
+
 
 //  This function takes a table index, and, if a FK references that table,
 //    returns the table & column.
@@ -351,17 +461,42 @@ function update_schema_col_datatype(table_idx, column_idx) {
 }
 
 //  Fires when you click the "+ Add a table" button
-function add_table_to_schema() {
-  let coords = get_schema_table_pos(_schema_data.length);  //  Get a reasonable position for a new table
-  console.log(_schema_data);
-  _schema_data.push({
-    name: 'New Table ' + (_schema_data.length + 1),
-    snakecase: 'new-table-' + (_schema_data.length + 1),
+function add_table_to_schema(x_pos, y_pos) {
+
+  let new_table = {
+    name: 'New Table ' + _schema_data.length,  //  No need to add 1 bc of ghost table
     max_id: 0,
     columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
-    x_pos: coords.x_pos,
-    y_pos: coords.y_pos
-  });
+    x_pos: x_pos,
+    y_pos: y_pos
+  };
+  console.log(new_table);
+
+  let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
+  update_row_api_route += `&table_name=`; //  Leave this blank to create a new table
+  http.open("POST", update_row_api_route);
+  http.send(JSON.stringify(new_table));
+  http.onreadystatechange = (e) => {
+    let response;      
+    if (http.readyState == 4 && http.status == 200) {
+      response = JSON.parse(http.responseText);
+      if (!response.error) {
+        console.log("Added table :)")
+        _table_list.push(to_snakecase(new_table.name));
+        _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
+        _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;
+        // let table_idx = _table_list.indexOf(to_snakecase(new_table.name));
+        // if (table_idx > -1) { _table_list[table_idx] = to_snakecase(_selected_table.metadata.name) }
+        render_side_bar();
+        requestAnimationFrame(render_schema);
+
+        // render_table();
+
+      } else {
+        document.getElementById('error').innerHTML = response.msg;
+      }
+    }
+  }
   requestAnimationFrame(render_schema);
 }
 
@@ -369,7 +504,7 @@ function add_table_to_schema() {
 function confirm_delete_schema_table(index) {
   open_popup(`
     <p>Delete the table "${_schema_data[index].name}"?</p>
-    <button onclick="delete_schema_table(${index})" autofocus>Yes, delete it!</button>&nbsp;
+    <button onclick="delete_schema_table(${index})" id="focus">Yes, delete it!</button>&nbsp;
     <button onclick="close_popup()">No, don't delete</button>
   `);
 }
@@ -389,7 +524,7 @@ function confirm_update_db() {
       <span class="blue">${_selected_db.name}</span>? </p>
     <p>Row data may be lost!!</p>
     <br/>
-    <button onclick="update_db()" autofocus>Yes, save changes.</button>&nbsp;
+    <button onclick="update_db()" id="focus">Yes, save changes.</button>&nbsp;
     <button onclick="close_popup()">No, keep editing</button>`);
 }
 

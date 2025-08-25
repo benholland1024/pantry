@@ -78,9 +78,9 @@ function confirm_delete_db() {
       All tables and table data will be deleted. 
       Are you sure you want to delete <span style="color:var(--blue)">${_selected_db.name}</span>?
     </p>
-    <button onclick="delete_db()">Yes, delete this database</button>&nbsp;
+    <button onclick="delete_db()" id="focus">Yes, delete this database</button>&nbsp;
     <button onclick="close_popup()">No, don't delete</button>
-    `)
+    `);
 }
 
 //  Delete the database

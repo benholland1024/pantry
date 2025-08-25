@@ -1,4 +1,32 @@
-console.log('Starting the Pantry server! 🥫');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: server.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: server.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>console.log('Starting the Pantry server! 🥫');
 
 ////  SECTION 1: Imports.
 
@@ -54,7 +82,7 @@ function server_request(req, res) {
   
   if (url.includes('server')) {  /*  Don't send anything from the /server/ folder.  */
     respond_with_a_page(res, '/404');
-  } else if (extname.length == 0 && url.split('/')[1] == 'api') {     /*  API routes.      */
+  } else if (extname.length == 0 &amp;&amp; url.split('/')[1] == 'api') {     /*  API routes.      */
     api_routes(url, req, res);
   } else if (extname.length == 0) {            /*  No extension? Respond with index.html.  */
     let response = fs.readFileSync(__dirname + '/../website/index.html');
@@ -144,7 +172,7 @@ function api_response(res, code, text) {
 function parse_req_data(req_data, res) {
   try {
     let parsed_req_data = JSON.parse(req_data);
-    if (typeof parsed_req_data === 'object' && !Array.isArray(parsed_req_data) && parsed_req_data !== null) {
+    if (typeof parsed_req_data === 'object' &amp;&amp; !Array.isArray(parsed_req_data) &amp;&amp; parsed_req_data !== null) {
       return parsed_req_data;
     } else {
       return { body: req_data };
@@ -156,7 +184,7 @@ function parse_req_data(req_data, res) {
 
 /**
  * Parse URL params
- * @param {string} url A url path, for example "/api/users?userid=22&username=ben"
+ * @param {string} url A url path, for example "/api/users?userid=22&amp;username=ben"
  * @param {Object} res Methods for HTTP response.
  * @returns {{ _url: string, _params: Object }} The Url with params parsed.
  */
@@ -164,8 +192,8 @@ function parse_url_params(url, res) {
   let params = { _url: url };
   if (url.indexOf('?') != -1) {
     let param_string = url.split('?')[1];
-    let param_pairs = param_string.split('&');
-    for (let i = 0; i < param_pairs.length; i++) {
+    let param_pairs = param_string.split('&amp;');
+    for (let i = 0; i &lt; param_pairs.length; i++) {
       let parts = param_pairs[i].split('=');
       if (parts.length != 2) {
         return api_response(res, 400, `Improper URL parameters.`);
@@ -195,13 +223,13 @@ function api_routes(url, req, res) {
     //  Parse the data to JSON.
     req_data = parse_req_data(req_data, res);
 
-    //  Get data, for example /api/users?userid=22&username=ben
+    //  Get data, for example /api/users?userid=22&amp;username=ben
     req_data._params = parse_url_params(url, res);
     url = req_data._params._url;
 
-    if (req.method == "GET" && typeof GET_routes[url] == 'function') {
+    if (req.method == "GET" &amp;&amp; typeof GET_routes[url] == 'function') {
       GET_routes[url](req_data._params, res);
-    } else if (req.method == "POST" && typeof POST_routes[url] == 'function') {
+    } else if (req.method == "POST" &amp;&amp; typeof POST_routes[url] == 'function') {
       POST_routes[url](req_data, res);
     } else {
       console.log(`The ${req.method} API route ${url} does not exist.`);
@@ -221,7 +249,7 @@ function api_routes(url, req, res) {
 GET_routes['/api/all-databases'] = function(data, res) {
   let db_names = fs.readdirSync(`${__dirname}/databases/${data.username}`);
   let response = { error: false, data: {} };
-  for (let i = 0; i < db_names.length; i++) {
+  for (let i = 0; i &lt; db_names.length; i++) {
     db_names[i] = path.parse(db_names[i]).name; //  Gets a list like ['db_name1, 'db_name2']
     let metadata;                               //  Now we'll get the API key for each DB
     try {
@@ -259,7 +287,7 @@ GET_routes['/api/all-table-names'] = function(data, res) {
   } catch (err) {
     //  No tables in that db
   }
-  for (let i = 0; i < table_names.length; i++) {
+  for (let i = 0; i &lt; table_names.length; i++) {
     table_names[i] = path.parse(table_names[i]).name;
   }
   api_response(res, 200, JSON.stringify(table_names));  //  Remove extensions
@@ -281,7 +309,7 @@ GET_routes['/api/all-table-metadata'] = function(data, res) {
   } catch (err) {
     //  No tables in that db
   }
-  for (let i = 0; i < table_names.length; i++) {
+  for (let i = 0; i &lt; table_names.length; i++) {
     try {
       let metadata = fs.readFileSync(`${__dirname}/databases/${data.username}/${data.database}/metadata/${table_names[i]}`);
       table_metadata.push(JSON.parse(metadata));
@@ -293,7 +321,7 @@ GET_routes['/api/all-table-metadata'] = function(data, res) {
 }
 
 /**
- * Example: /api/table?username=my-username&db_name=my-db&table_name=my-table
+ * Example: /api/table?username=my-username&amp;db_name=my-db&amp;table_name=my-table
  * Get one or more tables from a given database. 
  * @param {Object} data 
  * @param {Object} res Methods for API response.
@@ -316,11 +344,11 @@ GET_routes['/api/table'] = function(data, res) {
  */
 GET_routes['/api/user-by-session'] = function(params, res) {
   let session_data = new DataBase('admin', 'pantry-housekeeping').Table('sessions').find({ id: parseInt(params.session_id) });
-  if (session_data.length < 1) {
+  if (session_data.length &lt; 1) {
     return api_response(res, 404, 'No session found');
   }
   let user_data = new DataBase('admin', 'pantry-housekeeping').Table('users').find({ id: session_data[0].user_id });
-  if (user_data.length < 1) {
+  if (user_data.length &lt; 1) {
     api_response(res, 404, `No user found for session ${session_data[0].id}.`);
   } else {
     api_response(res, 200, JSON.stringify(user_data[0]));
@@ -328,7 +356,7 @@ GET_routes['/api/user-by-session'] = function(params, res) {
 }
 
 /**
- * Example:/api/insert-row?username=my-username&db_name=my-db&table_name=my-table
+ * Example:/api/insert-row?username=my-username&amp;db_name=my-db&amp;table_name=my-table
  * Insert a row into a table.
  * @param {Object} data 
  * @param {Object} res Methods for API response.
@@ -344,7 +372,7 @@ POST_routes['/api/insert-row'] = function(data, res) {
 }
 
 /**
- * Example: /api/update-row?username=my-username&db_name=my-db&table_name=my-table&id=26
+ * Example: /api/update-row?username=my-username&amp;db_name=my-db&amp;table_name=my-table&amp;id=26
  * Update a row in a table
  * @param {Object} data The updated data fields.
  * @param {Object} res Methods for API response.
@@ -364,7 +392,7 @@ POST_routes['/api/update-row'] = function(data, res) {
 //    Param: 
 //    Data:  None
 /**
- * Example: /api/delete-row?username=my-username&db_name=my-db&table_name=my-table&id=26
+ * Example: /api/delete-row?username=my-username&amp;db_name=my-db&amp;table_name=my-table&amp;id=26
  * Delete a row from a table.  
  * @param {} data 
  * @param {Object} res Methods for API response.
@@ -379,11 +407,11 @@ POST_routes['/api/delete-row'] = function(data, res) {
 }
 
 /**
- * Example: /api/create-table?username=my-username&db_name=my-db
+ * Example: /api/create-table?username=my-username&amp;db_name=my-db
  * Add a new table
  * @param {Object} data 
  * @param {string} data.name
- * @param {Array.<Object>} data.columns
+ * @param {Array.&lt;Object>} data.columns
  * @param {Object} res Methods for API response.
  */
 POST_routes['/api/create-table'] = function(data, res) {
@@ -415,7 +443,7 @@ POST_routes['/api/create-table'] = function(data, res) {
  * Update a table's metadata.
  * @param {Object} data 
  * @param {string} data.name
- * @param {Array.<Object>} data.columns
+ * @param {Array.&lt;Object>} data.columns
  * @param {number} data.x_pos
  * @param {number} data.y_pos
  * @param {Object} res Methods for API response.
@@ -427,7 +455,7 @@ POST_routes['/api/update-table'] = function(data, res) {
   delete data._params
   let response = {};
   let new_table_name = data.name.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
-  if (table_name.length == 0 &&              //  If the table doesn't exist, make it.
+  if (table_name.length == 0 &amp;&amp;              //  If the table doesn't exist, make it.
       !fs.existsSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`)) {  
     fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`, '[]')
   } else if (table_name != new_table_name) { //  If the table exists under a different name, rename it. 
@@ -486,7 +514,7 @@ POST_routes['/api/create-db'] = function(data, res) {
 }
 
 /**
- * Example: /api/update-db?username=my-username&db_name=my-db
+ * Example: /api/update-db?username=my-username&amp;db_name=my-db
  * Update a database
  * @param {Object} data An array of tables
  * @param {Object} res Methods for API response.
@@ -503,8 +531,8 @@ POST_routes['/api/update-db'] = function(data, res) {
     // console.log(path.parse(existing_table_names[0]).name)
 
     //  Step 2:  Iterate through existing tables.  Update those that need it.  Track which tables are seen in both lists.
-    for (let i = 0; i < existing_table_names.length; i++) {
-      for (let j = 0; j < updated_tables.length; j++) {
+    for (let i = 0; i &lt; existing_table_names.length; i++) {
+      for (let j = 0; j &lt; updated_tables.length; j++) {
         if (path.parse(existing_table_names[i]).name == updated_tables[j].snakecase) {
           existing_table_names.splice(i,1); //  Remove existing name if it will be updated.
           //  Update the table
@@ -519,13 +547,13 @@ POST_routes['/api/update-db'] = function(data, res) {
 
     //  Step 3: Any table names remaining in "existing_table_names" need to be deleted, 
     //   since they weren't in our "updated_tables".
-    for (let i = 0; i < existing_table_names.length; i++) {
+    for (let i = 0; i &lt; existing_table_names.length; i++) {
       fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/rows/${existing_table_names[i]}`);
       fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/metadata/${existing_table_names[i]}`);
     }
 
     //  Step 4: Any tables remaining in "updated_tables" need to be created. 
-    for (let i = 0; i < updated_tables.length; i++) {
+    for (let i = 0; i &lt; updated_tables.length; i++) {
       fs.writeFileSync(
         `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[i].snakecase}.json`, 
         JSON.stringify(updated_tables[i]), 
@@ -645,7 +673,7 @@ POST_routes['/api/login'] = function(login_info, res) {
     user_data: '',
     session_id: ''
   }
-  if (user_data.length < 1) {
+  if (user_data.length &lt; 1) {
     response.error = true;
     response.msg = 'No user found.';
     return api_response(res, 200, JSON.stringify(response));
@@ -695,7 +723,7 @@ POST_routes['/api/update-password'] = function(password_update, res) {
     error: false,
     msg: '',
   }
-  if (user_data.length < 1) {
+  if (user_data.length &lt; 1) {
     response.error = true;
     response.msg = 'No user found.';
     return api_response(res, 200, JSON.stringify(response));
@@ -759,7 +787,7 @@ POST_routes['/api/delete-account'] = function(data, res) {
     error: false,
     msg: '',
   }
-  if (user_data.length < 1) {
+  if (user_data.length &lt; 1) {
     response.error = true;
     response.msg = 'No user found.';
     return api_response(res, 200, JSON.stringify(response));
@@ -806,4 +834,26 @@ process.on('SIGINT', function() {
   server.close();
   process.exit()
 });
-server.listen(8080);
+server.listen(8080);</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#api_response">api_response</a></li><li><a href="global.html#api_routes">api_routes</a></li><li><a href="global.html#deleteDirectoryRecursive">deleteDirectoryRecursive</a></li><li><a href="global.html#parse_req_data">parse_req_data</a></li><li><a href="global.html#parse_url_params">parse_url_params</a></li><li><a href="global.html#respond_with_a_page">respond_with_a_page</a></li><li><a href="global.html#respond_with_asset">respond_with_asset</a></li><li><a href="global.html#server_request">server_request</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sat Aug 23 2025 18:33:21 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
