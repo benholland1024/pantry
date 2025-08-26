@@ -338,7 +338,6 @@ POST_routes['/api/insert-row'] = function(data, res) {
   let db_name = data._params.db_name;
   let table_name = data._params.table_name;
   delete data._params;
-  console.log(data);
   let response = new DataBase(username, db_name).Table(table_name).insert(data);
   api_response(res, 200, JSON.stringify(response));
 }
