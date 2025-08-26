@@ -212,6 +212,32 @@ function api_routes(url, req, res) {
 }
 
 /**
+ * Here is an overview of the existing API routes:
+ *  GET:
+ *   - /api/all-databases
+ *   - /api/all-table-names
+ *   - /api/all-table-metadata
+ *   - /api/table
+ *   - /api/user-by-session
+ *  POST: 
+ *   - /api/insert-row
+ *   - /api/update-row
+ *   - /api/delete-row
+ *   - /api/create-table
+ *   - /api/update-table
+ *   - /api/delete-table
+ *   - /api/create-db
+ *   - /api/update-db
+ *   - /api/update-db-name
+ *   - /api/delete-db
+ *   - /api/register
+ *   - /api/login
+ *   - /api/logout
+ *   - /api/update-password
+ *   - /api/delete-account
+ */
+
+/**
  * Example: /api/all-databases?user=my-username
  * Get a list of the names of all databases. 
  * @param {Object} data 
@@ -410,7 +436,7 @@ POST_routes['/api/create-table'] = function(data, res) {
 }
 
 /**
- * Example
+ * Example: /api/update-table?username=my-username&db_name=my-db&table_name=my-table
  * Update a table's metadata.
  * @param {Object} data 
  * @param {string} data.name
@@ -424,7 +450,7 @@ POST_routes['/api/update-table'] = function(data, res) {
   let username = data._params.username;
   let table_name = data._params.table_name;
   delete data._params
-  let response = {};
+  let response = { error: false };
   let new_table_name = data.name.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
   if (table_name.length == 0 &&              //  If the table doesn't exist, make it.
       !fs.existsSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`)) {  
@@ -451,6 +477,30 @@ POST_routes['/api/update-table'] = function(data, res) {
     console.error('Error creating a new table file synchronously:', err);
     response.error = true;
     response.msg = err;
+  }
+  api_response(res, 200, JSON.stringify(response));
+}
+
+/**
+ * Example: /api/delete-table?username=my-username&db_name=my-db&table_name=my-table
+ * Deletes a table.
+ * @param {Object} data 
+ * @param {Object} res Methods for API response.
+ */
+POST_routes['/api/delete-table'] = function(data, res) {
+  let response = { error: false };
+  let table_name = data._params.table_name;
+  let username = data._params.username;
+  let db_name = data._params.db_name;
+
+  try {
+    fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`);
+    fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`);
+    console.log("Deleted " + table_name)
+  } catch (err) {
+    response.error = true;
+    response.msg = err;
+    console.error(err);
   }
   api_response(res, 200, JSON.stringify(response));
 }

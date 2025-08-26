@@ -485,13 +485,8 @@ function add_table_to_schema(x_pos, y_pos) {
         _table_list.push(to_snakecase(new_table.name));
         _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
         _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;
-        // let table_idx = _table_list.indexOf(to_snakecase(new_table.name));
-        // if (table_idx > -1) { _table_list[table_idx] = to_snakecase(_selected_table.metadata.name) }
         render_side_bar();
         requestAnimationFrame(render_schema);
-
-        // render_table();
-
       } else {
         document.getElementById('error').innerHTML = response.msg;
       }
@@ -511,9 +506,27 @@ function confirm_delete_schema_table(index) {
 
 //  Delete a table
 function delete_schema_table(index) {
-  _schema_data.splice(index, 1);
-  requestAnimationFrame(render_schema);
-  close_popup();
+  let table_name = to_snakecase(_schema_data[index].name);
+  http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${table_name}`);
+  http.send();
+  http.onreadystatechange = (e) => {
+    let response;      
+    if (http.readyState == 4 && http.status == 200) {
+      response = JSON.parse(http.responseText);
+      if (!response.error) {
+        console.log("Deleted a table!");
+        _schema_data.splice(index, 1);
+        requestAnimationFrame(render_schema);
+        close_popup();
+
+        let table_name_idx = _table_list.indexOf(table_name);
+        _table_list.splice(table_name_idx, 1);
+        render_side_bar();
+      } else {
+        document.getElementById('error').innerHTML = response.msg;
+      }
+    }
+  }
 }
 
 //  Prompt the user to confirm whether they want to save the DB changes.
