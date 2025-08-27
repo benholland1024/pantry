@@ -31,11 +31,11 @@ function render_table() {
 
   //  TOP ACTION BUTTONS
   let table_string = `<div style="text-align: right; margin: 20px 20px -10px 20px;">
-    <button onclick="_show_column_details = !_show_column_details; render_table();">
+    <button onclick="_show_column_details = !_show_column_details; render_table();" style="background: var(--content-bg-alt)">
         ${_show_column_details ? 'Hide' : 'Show'} column details
     </button>
     &nbsp;&nbsp;&nbsp;
-    <button onclick="add_column()">+ Add a column</button>
+    <button onclick="add_column()" style="background: var(--content-bg-alt)">+ Add a column</button>
   </div>`
   
   //  THE TABLE
@@ -122,7 +122,8 @@ function render_table() {
   if (rows.length < 1) {  
     table_string += `<div id="empty-table-space"><i>No rows in this table yet! </i></div>`;  
   }
-  table_string += `<button onclick="render_row_creator()" style="margin-top: 20px" id="new-row-btn">+ Add a new row</button>`
+  table_string += `<button onclick="render_row_creator()" style="margin-top: 20px; background: var(--content-bg-alt)" 
+    id="new-row-btn">+ Add a new row</button>`
   document.getElementById('table-display').innerHTML = table_string;
 
   //  Render the button that says "Save table"
