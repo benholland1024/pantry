@@ -8,7 +8,7 @@ var path = require('path');  // manage filepath names
 var fs   = require('fs');    // access files on the server
 var crypto = require('crypto'); // encrypt user passwords
 var DataBase = require('./database.js');
-const { log } = require('console');
+const { log, table } = require('console');
 
 
 
@@ -212,6 +212,15 @@ function api_routes(url, req, res) {
 }
 
 /**
+ * Given a string like "New Table 5", return "new-table-5"
+ * @param {string} str 
+ * @returns {string}
+ */
+function to_snakecase(str) {
+  return str.toLowerCase().replace(/\s+/g, '-')
+}
+
+/**
  * Here is an overview of the existing API routes:
  *  GET:
  *   - /api/all-databases
@@ -258,7 +267,7 @@ GET_routes['/api/all-databases'] = function(data, res) {
         metadata = {
           api_key: crypto.randomBytes(32).toString('hex')
         }
-        fs.writeFileSync(`${__dirname}/databases/${data.username}/${db_names[i]}/metadata.json`, JSON.stringify(metadata));
+        fs.writeFileSync(`${__dirname}/databases/${data.username}/${db_names[i]}/metadata.json`, JSON.stringify(metadata), null, '  ');
       }
       response.data[db_names[i]] = metadata;
     } catch (err) {
@@ -386,8 +395,6 @@ POST_routes['/api/update-row'] = function(data, res) {
   api_response(res, 200, JSON.stringify(response));
 }
 
-//    Param: 
-//    Data:  None
 /**
  * Example: /api/delete-row?username=my-username&db_name=my-db&table_name=my-table&id=26
  * Delete a row from a table.  
@@ -414,11 +421,27 @@ POST_routes['/api/delete-row'] = function(data, res) {
 POST_routes['/api/create-table'] = function(data, res) {
   let db_name = data._params.db_name;
   let username = data._params.username;
-  let table_name = data.snakecase;
+  let table_name = to_snakecase(data.name);
   delete data._params
+
+  //  Check if the table name is taken.
+  if (fs.existsSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`)) {
+    return api_response(res, 200, JSON.stringify({ error: true, msg: `The table name ${table_name} is already taken.`}));
+  }
+
+  //  Here, we need to get a new ID for the table.
+  let database_info = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata.json`); // Get an unused id
+  database_info = JSON.parse(database_info);
+  data.table_id = database_info.max_id;                                                                     // Update the table's id
+  database_info.max_id++;                                                                             // Update the db's max_id
+  database_info = JSON.stringify(database_info, null, '  ');
+  fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata.json`, database_info);    // Update the db's metadata
+
+  //  Create the table.
   let response = {};
   try {
     fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, '[]');
     response.msg = `Created new table with the name "${table_name}"!`;
     console.log(response.msg);
   } catch (err) {
@@ -426,17 +449,12 @@ POST_routes['/api/create-table'] = function(data, res) {
     response.error = true;
     response.msg = err;
   }
-  try {
-    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, '[]');
-  } catch (err) {
-    response.error = true;
-    response.msg = error;
-  }
+
   api_response(res, 200, JSON.stringify(response));
 }
 
 /**
- * Example: /api/update-table?username=my-username&db_name=my-db&table_name=my-table
+ * Example: /api/update-table?username=my-username&db_name=my-db&table_id=2
  * Update a table's metadata.
  * @param {Object} data 
  * @param {string} data.name
@@ -448,20 +466,31 @@ POST_routes['/api/create-table'] = function(data, res) {
 POST_routes['/api/update-table'] = function(data, res) {
   let db_name = data._params.db_name;
   let username = data._params.username;
-  let table_name = data._params.table_name;
+  let table_id = data._params.table_id;
   delete data._params
+  let table_name = to_snakecase(data.name);
   let response = { error: false };
-  let new_table_name = data.name.toLowerCase().replace(/\s+/g, '-'); // replace spaces with dashes
-  if (table_name.length == 0 &&              //  If the table doesn't exist, make it.
-      !fs.existsSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`)) {  
-    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`, '[]')
-  } else if (table_name != new_table_name) { //  If the table exists under a different name, rename it. 
+
+  //  We now need to find the old table, to make sure the name didn't change.
+  let tables = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
+  let old_name = '';
+  for (let i = 0; i < tables.length; i++) {
+    let table_to_read = path.parse(tables[i]).name;
+    let table_data = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_to_read}.json`);
+    table_data = JSON.parse(table_data);
+    if (table_data.table_id == table_id) {
+      old_name = table_to_read;
+    }
+  }
+
+  //  If the table exists under a different name, rename it. 
+  if (old_name != table_name) { 
     try {
-      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, 
-        `${__dirname}/databases/${username}/${db_name}/metadata/${new_table_name}.json`
+      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/metadata/${old_name}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`
       );
-      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, 
-        `${__dirname}/databases/${username}/${db_name}/rows/${new_table_name}.json`
+      fs.renameSync(`${__dirname}/databases/${username}/${db_name}/rows/${old_name}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`
       );
     } catch (err) {
       console.error('Error renaming a table file synchronously:', err);
@@ -469,9 +498,11 @@ POST_routes['/api/update-table'] = function(data, res) {
       response.msg = err;
     }
   }
-  try {                                      //  Write the updated metadata of the table too
-    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${new_table_name}.json`, JSON.stringify(data, null, 2));
-    response.msg = `Updated a table with the old name "${table_name}", new name "${new_table_name}"!`;
+
+  //  Write the updated metadata of the table too
+  try {
+    fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
+    response.msg = `Updated a table with the old name "${table_name}", new name "${table_name}"!`;
     // console.log(response.msg);
   } catch (err) {
     console.error('Error creating a new table file synchronously:', err);
@@ -519,10 +550,11 @@ POST_routes['/api/create-db'] = function(data, res) {
     if (!data.db_name) { throw error("Missing database name."); return; }
     else if (!data.db_user) { throw error("Missing database user."); return; }
     let db_data = {
-      api_key: crypto.randomBytes(32).toString('hex')
+      api_key: crypto.randomBytes(32).toString('hex'),
+      max_id: 0
     }
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}`, {recursive: true}); // Recursive means create parent dirs when needed
-    fs.writeFileSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata.json`, JSON.stringify(db_data))
+    fs.writeFileSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata.json`, JSON.stringify(db_data), null, '  ');
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/metadata`); 
     fs.mkdirSync(`${__dirname}/databases/${data.db_user}/${data.db_name}/rows`); 
     response.data = db_data;
@@ -559,7 +591,7 @@ POST_routes['/api/update-db'] = function(data, res) {
           //  Update the table
           fs.writeFileSync(
             `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[j].snakecase}.json`, 
-            JSON.stringify(updated_tables[j])
+            JSON.stringify(updated_tables[j], null, '  ')
           );
           updated_tables.splice(j,1);       //  Remove updated data once it's been updated.
         }
@@ -577,7 +609,7 @@ POST_routes['/api/update-db'] = function(data, res) {
     for (let i = 0; i < updated_tables.length; i++) {
       fs.writeFileSync(
         `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[i].snakecase}.json`, 
-        JSON.stringify(updated_tables[i]), 
+        JSON.stringify(updated_tables[i], null, '  '), 
         null, 2
       );
       fs.writeFileSync(

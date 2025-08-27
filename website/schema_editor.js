@@ -78,15 +78,18 @@ function load_schema() {
         el = el.parentElement;
       }
     }
-    if (el && el.classList.contains('schema-table')) {        //  If a parent had class="schema-table"...
-      let fk_input_table_idx = Number(el.id.split('-')[2]);   ///   Then use the id to get the table index. Ex: id="s-table-3"
+    if (el && el.classList.contains('schema-table')) {             //  If a parent had class="schema-table"...
+      let fk_input_table_idx = Number(el.id.split('-')[2]);        //   Then use the id to get the table index. Ex: id="s-table-3"
+      let fk_input_table_id = _schema_data[fk_input_table_idx].table_id; //   Now get that input table's table_id. 
+
       let fk_output_table_idx = _selected_fk_output.table_idx;
       let fk_output_col_idx = _selected_fk_output.col_idx;
       let fk_output_table = _schema_data[fk_output_table_idx];
       
-      fk_output_table.columns[fk_output_col_idx].fk_input_dest = fk_input_table_idx;  //  Assign that index to the column's .fk_input_dest
+      fk_output_table.columns[fk_output_col_idx].fk_input_dest = fk_input_table_id;  //  Assign that index to the column's .fk_input_dest
+      update_schema_table(fk_output_table_idx);
 
-    } else if (_selected_schema_table >= 0) {
+    } else if (_selected_schema_table >= 0) {                      //  Or, if we're grabbing a table, not an FK line, then just rerender.
       rerender = true;
     }
     _is_mouse_down = false;
@@ -105,7 +108,6 @@ function load_schema() {
       e.clientX < action_bar.left) {
       add_table_to_schema(e.clientX - display.left, e.clientY - display.top);
     }
-
 
     if (rerender) {     requestAnimationFrame(render_schema);    }
   }
@@ -137,14 +139,14 @@ function load_schema() {
       _schema_data[_schema_data.length-1].y_pos = e.clientY - container.top;
       render_schema();
     }
-    //else if (_is_mouse_down) {  //  Pan 
-    //   _pan_x += e.clientX - _last_x;
-    //   _last_x = e.clientX;
+    else if (_is_mouse_down) {  //  Pan 
+      _pan_x += e.clientX - _last_x;
+      _last_x = e.clientX;
 
-    //   _pan_y += e.clientY - _last_y;
-    //   _last_y = e.clientY;
-    //   requestAnimationFrame(render_schema);
-    // }
+      _pan_y += e.clientY - _last_y;
+      _last_y = e.clientY;
+      requestAnimationFrame(render_schema);
+    }
     
   }
   document.addEventListener('mousemove', _event_listeners.mousemove);
@@ -159,7 +161,10 @@ function load_schema() {
     // requestAnimationFrame(render_schema);
   }
   document.addEventListener("wheel", _event_listeners.wheel);
-  document.addEventListener('resize', render_schema);
+  window.addEventListener('resize', () => {
+    console.log("Woah doggie! Resizing!")
+    render_schema();
+  });
 }
 
 /**
@@ -259,7 +264,10 @@ function render_schema() {
         // Render fk line if connected & not dragging:
       } else if (column.datatype == 'fk' && column.fk_input_dest > -1) {
         //  Get the x pos and y pos of the "input destination table"
-        let dest_table = _schema_data[column.fk_input_dest];
+        let dest_table_idx = _schema_data.findIndex((table) => {
+          return table.table_id == column.fk_input_dest;
+        })
+        let dest_table = _schema_data[dest_table_idx];
 
         let table_el = document.getElementById(`s-table-${i}`);
         let table_width = table_el ? table_el.offsetWidth : _table_width
@@ -292,7 +300,11 @@ function render_schema() {
     schema_html += `<h4 
       class="schema-table-name"
     >
-      <input type="text" id="col-name-${i}" value="${table.name}" onchange="_schema_data[${i}].name = event.target.value"/>
+      <input 
+        type="text" id="col-name-${i}" value="${table.name}" 
+        onchange="_schema_data[${i}].name = event.target.value"
+        onblur="update_schema_table(${i})"
+      />
       <div class="schema-table-icon table-mover" onmousedown="_selected_schema_table = ${i}">&#10018;</div>
     </h4>`;
     for (let j = 0; j < table.columns.length; j++ ) {
@@ -311,6 +323,7 @@ function render_schema() {
             style="field-sizing: content" 
             value="${column.name}"
             onchange="_schema_data[${i}].columns[${j}].name = event.target.value"
+            onblur="update_schema_table(${i})"
             ${to_snakecase(column.name) == 'id' ? 'readonly' : ''}
           >
         </div>
@@ -331,8 +344,7 @@ function render_schema() {
     } //  End loop through columns. 
     schema_html += `<div 
         class="schema-add-a-column-btn" 
-        onclick="_schema_data[${i}].columns.push({ name: 'Column ' + ${table.columns.length+1}, unique: false, required: false, datatype: 'string' }); 
-          render_schema();"
+        onclick="add_a_column(${i})"
       >
         + Add a column
     </div>`;
@@ -348,7 +360,7 @@ function render_schema() {
   document.getElementById('action-button-container').innerHTML = `<button onclick="set_schema_pos(); render_schema()">
     &#10227; Reset table positions
   </button>&nbsp;&nbsp;&nbsp;&nbsp;`;
-  document.getElementById('action-button-container').innerHTML += `<button onclick="confirm_update_db()">&#128190; Save changes</button>`;
+  // document.getElementById('action-button-container').innerHTML += `<button onclick="confirm_update_db()">&#128190; Save changes</button>`;
   
 }
 
@@ -386,6 +398,7 @@ function enter_add_table_mode() {
   });
   _selected_schema_table = _schema_data.length - 1;
   document.getElementById('schema-display').classList.add('cursor-crosshair');
+  render_schema();
 }
 
 /**
@@ -405,6 +418,7 @@ function enter_cursor_mode() {
   exit_add_table_mode();
   _cursor_mode = 'cursor';
   render_action_bar();
+  render_schema();
 }
 
 /**
@@ -447,22 +461,50 @@ function table_input_click(table_idx) {
   }
 }
 
+/**
+ * Updates a table.  Used to update any column name or datatype.
+ * @param {number} table_idx 
+ */
+function update_schema_table(table_idx) {
+  let table = _schema_data[table_idx];
+  loading_popup();
+  let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
+  update_row_api_route += `&table_id=${table.table_id}`;
+  http.open("POST", update_row_api_route);
+  http.send(JSON.stringify(table));
+  http.onreadystatechange = (e) => {
+    let response;      
+    if (http.readyState == 4 && http.status == 200) {
+      response = JSON.parse(http.responseText);
+      if (!response.error) {
+        console.log("Updated table :)")
+        close_popup();
+        requestAnimationFrame(render_schema);
+      } else {
+        document.getElementById('error').innerHTML = response.msg;
+      }
+    }
+  }
+}
+
 //  Update the datatype of a table column
 function update_schema_col_datatype(table_idx, column_idx) {
   let new_val = document.getElementById(`i-${table_idx}-${column_idx}`).value;
   if (new_val.split('-')[0] == 'fk') {
-    _schema_data[table_idx].columns[column_idx].fk_input_dest = Number(new_val.split('-')[1])
+    let fk_input_dest_idx = Number(new_val.split('-')[1]);
+    let fk_input_dest_id = _schema_data[fk_input_dest_idx].table_id;
+    console.log(`Updating datatype to fk_input_dest_idx: ${fk_input_dest_idx}, table id" ${fk_input_dest_id}`)
+    _schema_data[table_idx].columns[column_idx].fk_input_dest = fk_input_dest_id;
     _schema_data[table_idx].columns[column_idx].datatype = 'fk';
   } else {
     _schema_data[table_idx].columns[column_idx].datatype = new_val;
   }
-  render_schema();
-  requestAnimationFrame(render_schema);
+  update_schema_table(table_idx);  //  This re-renders the schema once finished
 }
 
 //  Fires when you click the "+ Add a table" button
 function add_table_to_schema(x_pos, y_pos) {
-
+  loading_popup();
   let new_table = {
     name: 'New Table ' + _schema_data.length,  //  No need to add 1 bc of ghost table
     max_id: 0,
@@ -470,11 +512,8 @@ function add_table_to_schema(x_pos, y_pos) {
     x_pos: x_pos,
     y_pos: y_pos
   };
-  console.log(new_table);
 
-  let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
-  update_row_api_route += `&table_name=`; //  Leave this blank to create a new table
-  http.open("POST", update_row_api_route);
+  http.open("POST", `/api/create-table?username=${_current_user.username}&db_name=${_selected_db.name}`);
   http.send(JSON.stringify(new_table));
   http.onreadystatechange = (e) => {
     let response;      
@@ -485,6 +524,7 @@ function add_table_to_schema(x_pos, y_pos) {
         _table_list.push(to_snakecase(new_table.name));
         _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
         _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;
+        close_popup();
         render_side_bar();
         requestAnimationFrame(render_schema);
       } else {
@@ -493,6 +533,16 @@ function add_table_to_schema(x_pos, y_pos) {
     }
   }
   requestAnimationFrame(render_schema);
+}
+
+/**
+ * Add a column to a table
+ * @param {number} table_idx 
+ */
+function add_a_column(table_idx) {
+  let table = _schema_data[table_idx];
+  table.columns.push({ name: 'Column ' + (table.columns.length + 1), unique: false, required: false, datatype: 'string' }); 
+  update_schema_table(table_idx)
 }
 
 //  Open a popup to confirm that the user wants to delete the schema table
@@ -506,6 +556,7 @@ function confirm_delete_schema_table(index) {
 
 //  Delete a table
 function delete_schema_table(index) {
+  loading_popup();
   let table_name = to_snakecase(_schema_data[index].name);
   http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${table_name}`);
   http.send();

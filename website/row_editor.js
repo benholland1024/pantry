@@ -295,16 +295,32 @@ function create_table() {
         name: "Id",
         required: true,
         unique: true
-      }]
+      }],
+      x_pos: 20,
+      y_pos: 20
     },
     rows: [],
-    x_pos: 20,
-    y_pos: 20
   }
-  _table_list.push(`new-table-${name_i}`);
-  save_table_columns();
-  _original_table_name = `new-table-${name_i}`;
-  render_table();
+  let table_data = _selected_table.metadata;
+  loading_popup();
+  http.open("POST", `/api/create-table?username=${_current_user.username}&db_name=${_selected_db.name}`);
+  http.send(JSON.stringify(table_data));
+  http.onreadystatechange = (e) => {
+    let response;      
+    if (http.readyState == 4 && http.status == 200) {
+      response = JSON.parse(http.responseText);
+      if (!response.error) {
+        console.log("Added table :)")
+        _table_list.push(`new-table-${name_i}`);
+        close_popup();
+        _original_table_name = `new-table-${name_i}`;
+        render_side_bar();
+
+      } else {
+        document.getElementById('error').innerHTML = response.msg;
+      }
+    }
+  }
 }
 
 //  Add a row to the current table
