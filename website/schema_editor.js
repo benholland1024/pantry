@@ -521,6 +521,7 @@ function add_table_to_schema(x_pos, y_pos) {
       response = JSON.parse(http.responseText);
       if (!response.error) {
         console.log("Added table :)")
+        new_table.table_id = response.table_id;
         _table_list.push(to_snakecase(new_table.name));
         _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
         _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;

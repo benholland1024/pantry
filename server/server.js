@@ -443,6 +443,7 @@ POST_routes['/api/create-table'] = function(data, res) {
     fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`, JSON.stringify(data, null, 2));
     fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`, '[]');
     response.msg = `Created new table with the name "${table_name}"!`;
+    response.table_id = data.table_id;
     console.log(response.msg);
   } catch (err) {
     console.error('Error creating a new table file synchronously:', err);
