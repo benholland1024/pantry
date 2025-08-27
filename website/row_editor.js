@@ -15,6 +15,7 @@ function render_table() {
     <div>
       Table name: 
       <input type="text" id="table-name-input" value="${_selected_table.metadata.name}"
+        onblur="save_table()"
       />
     </div>
     <div id="table-snakecase-container">
@@ -56,7 +57,7 @@ function render_table() {
         column.datatype == 'fk' ? `fk-${column.fk_input_dest}` : column.datatype, 
         {
           id: 'datatype-' + i, 
-          onchange: 'update_table_col_datatype(' + i + ')',
+          onchange: 'update_table_col_datatype(' + i + ');',
           disabled: disabled_text,
           table_name: _selected_table.name,
           table_list: _table_list
@@ -66,14 +67,14 @@ function render_table() {
         Unique? 
         <input 
           type="checkbox" style="width: 40px" id="i-unique-${i}" ${column.unique ? 'checked' : '' } ${disabled_text}
-          oninput="_selected_table.metadata.columns[${i}].unique = event.target.value;"
+          oninput="_selected_table.metadata.columns[${i}].unique = event.target.value; save_table();"
         />
       </div>
       <div style="font-weight: normal; font-size: 0.7em; margin:10px 0px;">
         Required? 
         <input 
           type="checkbox" style="width: 40px" id="i-required-${i}" ${column.required ? 'checked' : '' } ${disabled_text}
-          oninput="_selected_table.metadata.columns[${i}].required = event.target.value;"
+          oninput="_selected_table.metadata.columns[${i}].required = event.target.value; save_table();"
         />
       </div>`
       if (to_snakecase(column.name) != 'id') {
@@ -124,8 +125,8 @@ function render_table() {
   table_string += `<button onclick="render_row_creator()" style="margin-top: 20px" id="new-row-btn">+ Add a new row</button>`
   document.getElementById('table-display').innerHTML = table_string;
 
-  //  Render the button that says "Edit table metadata"
-  document.getElementById('action-button-container').innerHTML = `<button onclick="save_table_columns()">&#128190; Save table columns</button>`
+  //  Render the button that says "Save table"
+  // document.getElementById('action-button-container').innerHTML = `<button onclick="save_table()">&#128190; Save table</button>`
 }
 
 //  Returns HTML for an input for an editable cell.
@@ -194,9 +195,8 @@ function update_table_col_datatype(column_idx) {
   let existing_data = false;
   let do_convert = false;
   if (o_val == 'bool' || o_val == 'fk') {  //  It doesnt make sense to check for existing data here. Just convert.
-    console.log("This?");
+    //  Nothing
   } else {
-    console.log("Here then")
     for (let i = 0; i < _selected_table.rows.length; i++) {
       let row = _selected_table.rows[i];
       let col_snakecase = to_snakecase(_selected_table.metadata.columns[column_idx].name);
@@ -220,6 +220,7 @@ function update_table_col_datatype(column_idx) {
       }
     }
   }
+  save_table();
   render_table();
 }
 
@@ -242,6 +243,7 @@ function add_column() {
     row = _selected_table.rows[i];
     row[to_snakecase(column.name)] = '';
   }
+  save_table();
   render_table();
 }
 
@@ -253,7 +255,7 @@ function delete_column(col_idx) {
     delete row[col_snakecase];
   }
   _selected_table.metadata.columns.splice(col_idx, 1);
-
+  save_table();
   render_table();
 }
 
@@ -315,7 +317,7 @@ function create_table() {
         close_popup();
         _original_table_name = `new-table-${name_i}`;
         render_side_bar();
-
+        render_table();
       } else {
         document.getElementById('error').innerHTML = response.msg;
       }
@@ -408,9 +410,10 @@ function delete_row(i) {
 }
 
 //  Updates the table columns in the database. 
-function save_table_columns() {
+function save_table() {
   let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
-  update_row_api_route += `&table_name=${_original_table_name}`;
+  update_row_api_route += `&table_id=${_selected_table.metadata.table_id}`;
+  loading_popup();
   http.open("POST", update_row_api_route);
   http.send(JSON.stringify(_selected_table.metadata));
   http.onreadystatechange = (e) => {
@@ -425,8 +428,10 @@ function save_table_columns() {
         // }
         // _selected_row = {};
         // table.rows.push(new_row);
+        close_popup();
         let table_idx = _table_list.indexOf(_original_table_name);
         if (table_idx > -1) { _table_list[table_idx] = to_snakecase(_selected_table.metadata.name) }
+        _original_table_name = to_snakecase(_selected_table.metadata.name);
         render_side_bar();
         // render_table();
 

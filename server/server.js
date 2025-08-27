@@ -432,10 +432,10 @@ POST_routes['/api/create-table'] = function(data, res) {
   //  Here, we need to get a new ID for the table.
   let database_info = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata.json`); // Get an unused id
   database_info = JSON.parse(database_info);
-  data.table_id = database_info.max_id;                                                                     // Update the table's id
+  data.table_id = database_info.max_id;                                                               // Update the table's id
   database_info.max_id++;                                                                             // Update the db's max_id
   database_info = JSON.stringify(database_info, null, '  ');
-  fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata.json`, database_info);    // Update the db's metadata
+  fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata.json`, database_info);     // Update the db's metadata
 
   //  Create the table.
   let response = {};
