@@ -7,7 +7,7 @@ let _show_column_details = false; //  Shows or hides column details (datatype, u
 
 //  Render the table
 function render_table() {
-  window.history.pushState({ },"", `/database/${_selected_db.name}/table/${to_snakecase(_selected_table.metadata.name)}`);
+  window.history.pushState({ },"", `/database/${_selected_db.name}/table/${to_slug(_selected_table.metadata.name)}`);
   unrender_all();
   
   //  TOP BAR 
@@ -18,15 +18,15 @@ function render_table() {
         onblur="save_table()"
       />
     </div>
-    <div id="table-snakecase-container">
-      ${_selected_db.name}/table/${to_snakecase(_selected_table.metadata.name)}
+    <div id="table-slug-container">
+      ${_selected_db.name}/table/${to_slug(_selected_table.metadata.name)}
     </div>
   </div>`;
 
   document.getElementById('top-bar-title').innerHTML = top_bar_html;
   document.getElementById('table-name-input').addEventListener('input', e => {
     _selected_table.metadata.name = e.target.value
-    document.getElementById('table-snakecase-container').innerHTML = `${_selected_db.name}/table/${to_snakecase(_selected_table.metadata.name)}`;
+    document.getElementById('table-slug-container').innerHTML = `${_selected_db.name}/table/${to_slug(_selected_table.metadata.name)}`;
   });
 
   //  TOP ACTION BUTTONS
@@ -44,7 +44,7 @@ function render_table() {
   let columns = _selected_table.metadata.columns;
   for (let i = 0; i < columns.length; i++) {
     let column = columns[i];
-    let disabled_text = to_snakecase(column.name) == 'id' ? 'disabled' : '';
+    let disabled_text = to_slug(column.name) == 'id' ? 'disabled' : '';
     table_string += `<th>
       <div style="margin-bottom: 10px;">
         <input type="text" value="${column.name}" style="font-weight:bold;"
@@ -77,7 +77,7 @@ function render_table() {
           oninput="_selected_table.metadata.columns[${i}].required = event.target.value; save_table();"
         />
       </div>`
-      if (to_snakecase(column.name) != 'id') {
+      if (to_slug(column.name) != 'id') {
         table_string += `<div 
           style="font-weight: normal; font-size: 0.7em; color: var(--error-red); cursor:pointer; margin:10px 0px 0px;" 
           onclick="delete_column(${i})"
@@ -105,7 +105,7 @@ function render_table() {
       if (selected) {
         table_string += `<td>${get_editable_cell(columns[j], rows[i])}</td>`;
       } else {
-        table_string += `<td>${rows[i][to_snakecase(columns[j].name)]}</td>`;
+        table_string += `<td>${rows[i][to_slug(columns[j].name)]}</td>`;
       }
     }
     if (selected) {
@@ -133,17 +133,17 @@ function render_table() {
 //  Returns HTML for an input for an editable cell.
 function get_editable_cell(column, row) {
   let id_attr = '';
-  if (to_snakecase(column.name) == 'id') { 
+  if (to_slug(column.name) == 'id') { 
     id_attr = `readonly value=${_selected_table.metadata.max_id}`; 
   }
   let html = '';
   console.log(column.datatype);
   if (column.datatype == 'number') {
-    html = `<input type="number" id="i-${to_snakecase(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_snakecase(column.name)]}"/>`;
+    html = `<input type="number" id="i-${to_slug(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_slug(column.name)]}"/>`;
   } else if (column.datatype == 'bool') {
-    html = `<input type="checkbox" id="i-${to_snakecase(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_snakecase(column.name)]}"/>`
+    html = `<input type="checkbox" id="i-${to_slug(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_slug(column.name)]}"/>`
   } else {
-    html = `<input type="text" id="i-${to_snakecase(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_snakecase(column.name)]}"/>`;
+    html = `<input type="text" id="i-${to_slug(column.name)}" ${id_attr} placeholder="${column.name}..." value="${row[to_slug(column.name)]}"/>`;
   }
   return html;
 }
@@ -164,13 +164,13 @@ function render_row_creator() {
   let cell;
   // let row_creator_html = '<tr id="row-creator">';
   for (let i = 0; i < columns.length; i++) {
-    //if (columns[j].snakecase == 'id') { continue; }
+    //if (columns[j].slug == 'id') { continue; }
     let id_attr = '';
-    if (to_snakecase(columns[i].name) == 'id') { 
+    if (to_slug(columns[i].name) == 'id') { 
       id_attr = `readonly value=${_selected_table.metadata.max_id}`; 
     }
     cell = newRow.insertCell();
-    cell.innerHTML = `<td><input type="text" id="i-${to_snakecase(columns[i].name)}" ${id_attr} placeholder="${columns[i].name}..." /></td>`;
+    cell.innerHTML = `<td><input type="text" id="i-${to_slug(columns[i].name)}" ${id_attr} placeholder="${columns[i].name}..." /></td>`;
   }
   cell = newRow.insertCell();
   cell.innerHTML = `<div class="table-row-icon save-row-icon" onclick="add_row()">&#128190;</div>`; //  save icon
@@ -200,8 +200,8 @@ function update_table_col_datatype(column_idx) {
   } else {
     for (let i = 0; i < _selected_table.rows.length; i++) {
       let row = _selected_table.rows[i];
-      let col_snakecase = to_snakecase(_selected_table.metadata.columns[column_idx].name);
-      let col_value = row[col_snakecase];
+      let col_slug = to_slug(_selected_table.metadata.columns[column_idx].name);
+      let col_value = row[col_slug];
       if (col_value && !existing_data) {
         existing_data = true;
         do_convert = confirm(`There are rows that already have data in this column. 
@@ -209,15 +209,15 @@ function update_table_col_datatype(column_idx) {
       }
       console.log(row);
       if (col_value && do_convert && new_type == 'string') {
-        row[col_snakecase] = col_value.toString();
+        row[col_slug] = col_value.toString();
       } else if (col_value && do_convert && new_type == 'number') {
-        row[col_snakecase] = Number(col_value);
-        if (isNaN(col_value)) { row[col_snakecase] = 0; }
+        row[col_slug] = Number(col_value);
+        if (isNaN(col_value)) { row[col_slug] = 0; }
       } else if (col_value) {
         let default_val = {
           'bool': false,
         }
-        row[col_snakecase] = default_val[new_type];
+        row[col_slug] = default_val[new_type];
       }
     }
   }
@@ -242,7 +242,7 @@ function add_column() {
   let column = _selected_table.metadata.columns[_selected_table.metadata.columns.length-1];
   for (let i = 0; i < _selected_table.rows.length; i++) {
     row = _selected_table.rows[i];
-    row[to_snakecase(column.name)] = '';
+    row[to_slug(column.name)] = '';
   }
   save_table();
   render_table();
@@ -252,8 +252,8 @@ function add_column() {
 function delete_column(col_idx) {
   for (let i = 0; i < _selected_table.rows.length; i++) {
     let row = _selected_table.rows[i];
-    let col_snakecase = to_snakecase(_selected_table.metadata.columns[col_idx].name);
-    delete row[col_snakecase];
+    let col_slug = to_slug(_selected_table.metadata.columns[col_idx].name);
+    delete row[col_slug];
   }
   _selected_table.metadata.columns.splice(col_idx, 1);
   save_table();
@@ -331,12 +331,12 @@ function add_row() {
   let columns = _selected_table.metadata.columns;
   let new_row = {};
   for (let i = 0; i < columns.length; i++) {
-    let input = document.getElementById("i-" + to_snakecase(columns[i].name));
+    let input = document.getElementById("i-" + to_slug(columns[i].name));
     if (input) {
-      new_row[to_snakecase(columns[i].name)] = input.value;
+      new_row[to_slug(columns[i].name)] = input.value;
     }
   }
-  http.open("POST", `/api/insert-row?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${to_snakecase(_selected_table.metadata.name)}`);
+  http.open("POST", `/api/insert-row?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${to_slug(_selected_table.metadata.name)}`);
   http.send(JSON.stringify(new_row));
   http.onreadystatechange = (e) => {
     if (http.readyState == 4 && http.status == 200) {
@@ -358,13 +358,13 @@ function update_row(row_num) {
   let columns = _selected_table.metadata.columns;
   let row_update = {};
   for (let i = 0; i < columns.length; i++) {
-    let input = document.getElementById("i-" + to_snakecase(columns[i].name));
+    let input = document.getElementById("i-" + to_slug(columns[i].name));
     if (input) {
-      row_update[to_snakecase(columns[i].name)] = input.value;
+      row_update[to_slug(columns[i].name)] = input.value;
     }
   }
   let update_row_api_route = `/api/update-row?username=${_current_user.username}&db_name=${_selected_db.name}`;
-  update_row_api_route += `&table_name=${to_snakecase(_selected_table.metadata.name)}&id=${_selected_table.rows[row_num].id}`;
+  update_row_api_route += `&table_name=${to_slug(_selected_table.metadata.name)}&id=${_selected_table.rows[row_num].id}`;
   http.open("POST", update_row_api_route);
   http.send(JSON.stringify(row_update));
   http.onreadystatechange = (e) => {
@@ -393,7 +393,7 @@ function delete_row(i) {
     return;
   }
   let delete_row_api_route = `/api/delete-row?username=${_current_user.username}&db_name=${_selected_db.name}`;
-  delete_row_api_route += `&table_name=${to_snakecase(_selected_table.metadata.name)}&id=${_selected_table.rows[i].id}`;
+  delete_row_api_route += `&table_name=${to_slug(_selected_table.metadata.name)}&id=${_selected_table.rows[i].id}`;
   http.open("POST", delete_row_api_route);  //  "table" is a global variable
   http.send();
   http.onreadystatechange = (e) => {
@@ -431,8 +431,8 @@ function save_table() {
         // table.rows.push(new_row);
         close_popup();
         let table_idx = _table_list.indexOf(_original_table_name);
-        if (table_idx > -1) { _table_list[table_idx] = to_snakecase(_selected_table.metadata.name) }
-        _original_table_name = to_snakecase(_selected_table.metadata.name);
+        if (table_idx > -1) { _table_list[table_idx] = to_slug(_selected_table.metadata.name) }
+        _original_table_name = to_slug(_selected_table.metadata.name);
         render_side_bar();
         // render_table();
 

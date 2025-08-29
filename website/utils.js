@@ -3,8 +3,8 @@
 //
 
 
-//  Convert any type of name into a snakecase name. Used lots of places.
-function to_snakecase(str) {
+//  Convert any type of name into a slug name. Used lots of places.
+function to_slug(str) {
   return str.toLowerCase().replaceAll(' ', '-')
 }
 

@@ -311,11 +311,11 @@ function render_schema() {
       let column = table.columns[j];
 
       //  The next line determines whether to add the "connected-input" class to a table.
-      let is_selected_input = (to_snakecase(column.name) == 'id' && get_fk_output_from_input(i).table_idx != -1) ? 'connected-input' : '';
+      let is_selected_input = (to_slug(column.name) == 'id' && get_fk_output_from_input(i).table_idx != -1) ? 'connected-input' : '';
 
       //  The code for the table's columns. 
       schema_html += `<div class="schema-table-column">
-        ${ to_snakecase(column.name) == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
+        ${ to_slug(column.name) == 'id' ? `<div class="fk-input ${is_selected_input}" id="fk-input-${i}" onmousedown="table_input_click(${i})"></div>` : '' }
         <div class="schema-col-name">
           <input 
             type="text" 
@@ -324,7 +324,7 @@ function render_schema() {
             value="${column.name}"
             onchange="_schema_data[${i}].columns[${j}].name = event.target.value"
             onblur="update_schema_table(${i})"
-            ${to_snakecase(column.name) == 'id' ? 'readonly' : ''}
+            ${to_slug(column.name) == 'id' ? 'readonly' : ''}
           >
         </div>
         <div class="schema-col-type">
@@ -333,7 +333,7 @@ function render_schema() {
             {
               id: 'i-' + i + '-' + j, 
               onchange: 'update_schema_col_datatype(' + i + ',' + j + ')',
-              disabled: to_snakecase(column.name) == 'id' ? 'disabled' : '',
+              disabled: to_slug(column.name) == 'id' ? 'disabled' : '',
               table_name: table.name,
               table_list: table_list
             }
@@ -392,7 +392,7 @@ function enter_add_table_mode() {
   _schema_data.push({ 
     name: 'New Table ' + (_schema_data.length + 1),
     max_id: 0,
-    columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
+    columns: [{ name: 'Id', slug: 'id', unique: true, required: true, datatype: 'number' }],
     x_pos: _last_x,
     y_pos: _last_y
   });
@@ -508,7 +508,7 @@ function add_table_to_schema(x_pos, y_pos) {
   let new_table = {
     name: 'New Table ' + _schema_data.length,  //  No need to add 1 bc of ghost table
     max_id: 0,
-    columns: [{ name: 'Id', snakecase: 'id', unique: true, required: true, datatype: 'number' }],
+    columns: [{ name: 'Id', slug: 'id', unique: true, required: true, datatype: 'number' }],
     x_pos: x_pos,
     y_pos: y_pos
   };
@@ -522,7 +522,7 @@ function add_table_to_schema(x_pos, y_pos) {
       if (!response.error) {
         console.log("Added table :)")
         new_table.table_id = response.table_id;
-        _table_list.push(to_snakecase(new_table.name));
+        _table_list.push(to_slug(new_table.name));
         _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
         _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;
         close_popup();
@@ -558,7 +558,7 @@ function confirm_delete_schema_table(index) {
 //  Delete a table
 function delete_schema_table(index) {
   loading_popup();
-  let table_name = to_snakecase(_schema_data[index].name);
+  let table_name = to_slug(_schema_data[index].name);
   http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${table_name}`);
   http.send();
   http.onreadystatechange = (e) => {
@@ -597,9 +597,9 @@ function confirm_update_db() {
 function update_db() {
   
   loading_popup();
-  //  Ensure all tables have a snakecase.
+  //  Ensure all tables have a slug.
   for (let i = 0; i < _schema_data.length; i++) {
-    _schema_data[i].snakecase = to_snakecase(_schema_data[i].name)
+    _schema_data[i].slug = to_slug(_schema_data[i].name)
   }
 
   http.open("POST", `/api/update-db?username=${_current_user.username}&db_name=${_selected_db.name}`);

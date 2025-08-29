@@ -216,7 +216,7 @@ function api_routes(url, req, res) {
  * @param {string} str 
  * @returns {string}
  */
-function to_snakecase(str) {
+function to_slug(str) {
   return str.toLowerCase().replace(/\s+/g, '-')
 }
 
@@ -421,7 +421,7 @@ POST_routes['/api/delete-row'] = function(data, res) {
 POST_routes['/api/create-table'] = function(data, res) {
   let db_name = data._params.db_name;
   let username = data._params.username;
-  let table_name = to_snakecase(data.name);
+  let table_name = to_slug(data.name);
   delete data._params
 
   //  Check if the table name is taken.
@@ -469,7 +469,7 @@ POST_routes['/api/update-table'] = function(data, res) {
   let username = data._params.username;
   let table_id = data._params.table_id;
   delete data._params
-  let table_name = to_snakecase(data.name);
+  let table_name = to_slug(data.name);
   let response = { error: false };
 
   //  We now need to find the old table, to make sure the name didn't change.
@@ -587,11 +587,11 @@ POST_routes['/api/update-db'] = function(data, res) {
     //  Step 2:  Iterate through existing tables.  Update those that need it.  Track which tables are seen in both lists.
     for (let i = 0; i < existing_table_names.length; i++) {
       for (let j = 0; j < updated_tables.length; j++) {
-        if (path.parse(existing_table_names[i]).name == updated_tables[j].snakecase) {
+        if (path.parse(existing_table_names[i]).name == updated_tables[j].slug) {
           existing_table_names.splice(i,1); //  Remove existing name if it will be updated.
           //  Update the table
           fs.writeFileSync(
-            `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[j].snakecase}.json`, 
+            `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[j].slug}.json`, 
             JSON.stringify(updated_tables[j], null, '  ')
           );
           updated_tables.splice(j,1);       //  Remove updated data once it's been updated.
@@ -609,12 +609,12 @@ POST_routes['/api/update-db'] = function(data, res) {
     //  Step 4: Any tables remaining in "updated_tables" need to be created. 
     for (let i = 0; i < updated_tables.length; i++) {
       fs.writeFileSync(
-        `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[i].snakecase}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/metadata/${updated_tables[i].slug}.json`, 
         JSON.stringify(updated_tables[i], null, '  '), 
         null, 2
       );
       fs.writeFileSync(
-        `${__dirname}/databases/${username}/${db_name}/rows/${updated_tables[i].snakecase}.json`, 
+        `${__dirname}/databases/${username}/${db_name}/rows/${updated_tables[i].slug}.json`, 
         '[]', 
         null, 2
       );

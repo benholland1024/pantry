@@ -396,7 +396,7 @@
         if (_selected_db.name == db_list[i]) {
           for (let j = 0; j < _table_list.length; j++) {
             selected_class = '';
-            if (_selected_table.metadata && _table_list[j] == to_snakecase(_selected_table.metadata.name)) {  selected_class = 'selected';  }
+            if (_selected_table.metadata && _table_list[j] == to_slug(_selected_table.metadata.name)) {  selected_class = 'selected';  }
             document.getElementById('db-list').innerHTML += `<div class="table-name ${selected_class}" onclick="load_table('${_table_list[j]}')">${_table_list[j]}</div>`;
           }
           selected_class = window.location.pathname.split('/')[3] == 'create-table' ? 'selected' : '';
@@ -1115,7 +1115,7 @@
     #table-name-input {
       background: var(--content-bg-desat-light3);
     }
-    #table-snakecase-container {
+    #table-slug-container {
       margin-top: 5px;
       opacity: 0.5;
       font-size: 0.9em;

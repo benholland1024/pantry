@@ -60,8 +60,8 @@ function update_db_name() {
         document.getElementById('db-name-error').innerHTML = response.msg;
         return;
       }
-      _db_data[new_db_name] = _db_data[to_snakecase(_selected_db.name)];
-      delete _db_data[to_snakecase(_selected_db.name)];
+      _db_data[new_db_name] = _db_data[to_slug(_selected_db.name)];
+      delete _db_data[to_slug(_selected_db.name)];
       _selected_db.name = new_db_name;
       render_db_settings();
       render_side_bar();
@@ -97,7 +97,7 @@ function delete_db() {
         document.getElementById('db-name-error').innerHTML = response.msg;
         return;
       }
-      delete _db_data[to_snakecase(_selected_db.name)];
+      delete _db_data[to_slug(_selected_db.name)];
       render_side_bar();
       load_dashboard();
     } else if (http.readyState == 4 && http.status == 404) {
