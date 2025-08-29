@@ -51,50 +51,51 @@
       <!--  Landing  -->
       <!--------------->
       <div id="landing" style="display:none;">
-        <div id="landing-gradient"></div>
-        <div id="svg-container">
-          <!--  Animated SVG logo is inserted here.  -->
-          <svg width="350px" viewBox="-50 -50 429 484" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" 
-            style="margin-top: 50px;fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
-            <g transform="matrix(1,0,0,1,-6434.47,-1948.64)">
-                <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Purple blob  -->
-                    <g transform="matrix(1,0,0,1,-5965.4,-1849.84)" id="purple-path-container">
-                        <!--  Insert purple path here -->
-                    </g>
-                </g>
-                <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Pink blob  -->
-                    <g transform="matrix(0.545065,0.838394,-0.838394,0.545065,-1201.11,-6434.6)" id="pink-path-container">
-                        <!--  Insert purple path here -->
-                    </g>
-                </g>
-                <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--     Can     -->
-                    <g transform="matrix(0.554038,0,0,0.554038,432.278,34.14)">
-                        <g transform="matrix(0.525795,0,0,0.525795,-13300.1,-5217.61)">
-                            <use xlink:href="#_Image2" x="25720" y="10241" width="586px" height="911px"/>
-                        </g>
-                    </g>
-                </g>
-            </g>
-            <defs>
-                <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png" 
-                  title="A can of DataPantry soup."
-                  alt="A soup can with 'DataPantry' written on it, in the style of a Campbell's soup can."
-                />
-            </defs>
-          </svg>
+        <!-- <div id="landing-gradient"></div> -->
+        <div class="landing-flex-container">
+          <div id="landing-text">
+            <p style="color:var(--blue); font-style: italic;">Turn schemas into real databases</p>
+            <h2>Manage your databases. <br/>100% free.</h2>
+            <p style="font-size: 1.5em;">
+              DataPantry is still in beta. <br/>Send feedback to <a href="mailto:benholland1024@gmail.com">benholland1024@gmail.com</a>.
+            </p>
+            <br/>
+            <button onclick="render_register_input()" id="landing-reg-btn">Register to create a database!</button>
+            <button onclick="boot_side_bar();" id="landing-dash-btn">Go to your dashboard!</button>
+          </div>
+          <div id="svg-container">
+            <!--  Animated SVG logo is inserted here.  -->
+            <svg width="450px" viewBox="-50 -50 429 484" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" 
+              style="margin-top: 50px;fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+              <g transform="matrix(1,0,0,1,-6434.47,-1948.64)">
+                  <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Purple blob  -->
+                      <g transform="matrix(1,0,0,1,-5965.4,-1849.84)" id="purple-path-container">
+                          <!--  Insert purple path here -->
+                      </g>
+                  </g>
+                  <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--  Pink blob  -->
+                      <g transform="matrix(0.545065,0.838394,-0.838394,0.545065,-1201.11,-6434.6)" id="pink-path-container">
+                          <!--  Insert purple path here -->
+                      </g>
+                  </g>
+                  <g transform="matrix(1,0,0,1,5947.58,1849.84)">   <!--     Can     -->
+                      <g transform="matrix(0.554038,0,0,0.554038,432.278,34.14)">
+                          <g transform="matrix(0.525795,0,0,0.525795,-13300.1,-5217.61)">
+                              <use xlink:href="#_Image2" x="25720" y="10241" width="586px" height="911px"/>
+                          </g>
+                      </g>
+                  </g>
+              </g>
+              <defs>
+                  <image id="_Image2" width="606px" height="931px" href="/assets/can-only.png" 
+                    title="A can of DataPantry soup."
+                    alt="A soup can with 'DataPantry' written on it, in the style of a Campbell's soup can."
+                  />
+              </defs>
+            </svg>
+          </div>
         </div>
-      
-        <h2>Cloud database management. Easy to use. 100% free.</h2>
-        <p><i>
-          Still in beta! Send feedback to <a href="mailto:benholland1024@gmail.com">benholland1024@gmail.com</a>
-        </i></p>
-        <p style="opacity: 0.5"><i>
-          You can also <a href="https://github.com/benholland1024/pantry" target="_blank">contribute</a>!
-          This is a dependency-less NodeJS project, if that's your thing. 
-        </i></p>
-        <br/>
-        <button onclick="render_register_input()" id="landing-reg-btn">Register to create your first database!</button>
-        <button onclick="boot_side_bar();" id="landing-dash-btn">Go to your dashboard!</button>
+       
       </div>
 
       <!----------------->
@@ -580,7 +581,7 @@
       --content-bg-alt: hsl(194, 78%, 16%);
       --content-bg-alt-light2: hsl(from var(--content-bg-alt) h calc(s - 40) calc(l + 10));;
 
-      --action-bg: rgb(43, 3, 38);
+      --action-bg: hsl(308, 92%, 10%);
       --action-bg-light1: hsl(from var(--action-bg) h calc(s - 40) calc(l + 5));
       --red-bg: rgb(126, 12, 27);
 
@@ -862,6 +863,21 @@
       /* transform: rotate(5deg); */
       z-index: 0;
     }
+    .landing-flex-container {
+      display: flex;
+      flex-flow: row wrap;
+      justify-content: space-around;
+      margin: 100px 0px;
+    }
+    #landing-text {
+      text-align: left;
+    }
+    #landing h2 {
+      font-size: 5em;
+      width: 8em;
+      padding: 0px;
+      margin: 0px;
+    }
     #svg-container {
       z-index: 2;
       position: relative;
@@ -871,14 +887,16 @@
       z-index: 2;
       position: relative;
     }
-    #landing button {
-      margin: 0px auto;
-    }
     #landing a {
       color: var(--blue);
     }
     #landing a:visited {
       color: var(--green);
+    }
+    #landing-reg-btn {
+      font-weight: bold;
+      padding: 10px 40px;
+      font-size: 1.5em;
     }
 
     /***************/
@@ -1084,7 +1102,7 @@
       color: var(--text-color);
       border: none;
       padding: 10px 20px;
-      border-radius: 10px;
+      border-radius: 15px;
       font-size: 1em;
       cursor: pointer;
     }
