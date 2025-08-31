@@ -101,6 +101,7 @@ function load_schema() {
 
     } else if (_selected_schema_table >= 0) {                      //  Or, if we're grabbing a table, not an FK line, then just rerender.
       rerender = true;
+      update_schema_table(_selected_schema_table);
     }
     _is_mouse_down = false;
     _selected_schema_table = -1;
@@ -119,7 +120,9 @@ function load_schema() {
       add_table_to_schema(e.clientX - display.left, e.clientY - display.top);
     }
 
-    if (rerender) {     requestAnimationFrame(render_schema);    }
+    if (rerender) {     
+      requestAnimationFrame(render_schema);
+    }
   }
   document.addEventListener('mouseup', _event_listeners.mouseup);
 

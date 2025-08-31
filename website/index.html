@@ -165,7 +165,8 @@
         <div class="db-settings-input">Database name: <input type="text" id="db-name"></div>
         <div style="color:var(--error-red)" id="db-name-error"><!-- Error msg here --></div>
         <br/>
-        <button onclick="update_db_name()">Update name</button>
+        <button onclick="update_db_name()">Update name</button>&nbsp;&nbsp;
+        <button onclick="load_database(_selected_db.name)" style="background:var(--content-bg-alt)">Go to Schema &rarr;</button>
         <br/><br/><br/><hr/>
 
         <div id="api-code-container" class="rounded-container">
