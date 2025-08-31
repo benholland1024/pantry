@@ -49,6 +49,7 @@ function render_table() {
       <div style="margin-bottom: 10px;">
         <input type="text" value="${column.name}" style="font-weight:bold;"
           oninput="_selected_table.metadata.columns[${i}].name = event.target.value;" name="col-name-${i}"
+          onblur="save_table()"
         />
       </div>`;
     //  Column details:

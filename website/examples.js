@@ -11,6 +11,7 @@ function load_examples() {
   document.getElementById('examples').style.display = 'block';
   render_examples();
   render_side_bar();
+  render_vanilla_html_ex();
 }
 
 //  Render the examples page
@@ -178,8 +179,13 @@ function render_vanilla_html_ex() {
       <p>Vanilla JS is less succinct than using the Pantry library, but it illustrates how the API can be used.</p>
       <p>
         Here's how you can write a comments section using DataPantry in a single .html file.  
-        To make this example, you'd need to create a database titled "blog", with a table titled "comments".
-        You'd also need to use your API key.
+        To make this example, you'd need to do the following:
+        <ol>
+          <li>Create a database titled "blog".</li>
+          <li>In that database, create a table titled "comments".</li>
+          <li>In the "comments" table, add two columns: "username" and "text".</li>
+        </ol>
+        You'd also need to use your API key from that database.
       </p>
       <p>
         The <span class="highlight">highlighted</span> words are the the parts you'll need to replace, depending
