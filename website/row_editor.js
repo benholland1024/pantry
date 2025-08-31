@@ -315,6 +315,7 @@ function create_table() {
       response = JSON.parse(http.responseText);
       if (!response.error) {
         console.log("Added table :)")
+        _selected_table.metadata.table_id = response.table_id;
         _table_list.push(`new-table-${name_i}`);
         close_popup();
         _original_table_name = `new-table-${name_i}`;

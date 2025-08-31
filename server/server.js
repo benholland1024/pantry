@@ -481,7 +481,13 @@ POST_routes['/api/update-table'] = function(data, res) {
     table_data = JSON.parse(table_data);
     if (table_data.table_id == table_id) {
       old_name = table_to_read;
+      break;
     }
+  }
+  if (old_name === '') {
+    response.error = true;
+    response.msg = `No database with id ${table_id} found.`;
+    return api_response(res, 200, JSON.stringify(response));
   }
 
   //  If the table exists under a different name, rename it. 
