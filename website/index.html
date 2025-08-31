@@ -214,7 +214,14 @@
     let _event_listeners = { onmousedown: () => {} }         //  Stores event listener functions, so they can be removed.
     const http = new XMLHttpRequest();                       //  Used for HTTP requests
 
-    const _utility_keys = [8, 9, 39, 37, 224];               //  Used for input validation. Backspace, tab, command, arrow keys
+    const _utility_keys = [
+      'Backspace', 
+      'Tab', 
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowUp',
+      'ArrowDown'
+    ];               //  Used for input validation. Backspace, tab, command, arrow keys
 
     let open_auth_box = 'none';  //  Used to do toggling of auth popups. Options: 'none', 'login', 'register'. 
 

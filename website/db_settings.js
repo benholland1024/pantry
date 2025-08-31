@@ -27,6 +27,7 @@ function load_db_settings(db_name, event) {
   console.log(_utility_keys);
   const username_regex = /^[a-z0-9_]*$/;
   username_input.addEventListener("keydown", event => {
+    console.log
     if (!username_regex.test(event.key) && !_utility_keys.includes(event.key)) {
       event.preventDefault();
       document.getElementById('db-name-error').innerHTML = "Username can only contain lowercase letters, numbers, and underscores.";
@@ -47,6 +48,9 @@ function render_db_settings() {
 //  Update the name of the currently selected database
 function update_db_name() {
   let new_db_name = document.getElementById('db-name').value;
+  if (new_db_name == _selected_db.name) {
+    return;
+  }
   http.open('POST', `/api/update-db-name`);
   http.send(JSON.stringify({
     username: _current_user.username,
@@ -80,7 +84,7 @@ function confirm_delete_db() {
     </p>
     <button onclick="delete_db()" id="focus">Yes, delete this database</button>&nbsp;
     <button onclick="close_popup()">No, don't delete</button>
-    `);
+  `);
 }
 
 //  Delete the database

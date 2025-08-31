@@ -20,17 +20,17 @@ function render_examples() {
       <h3 style="margin-bottom:0px;text-align: center;"><span style="color:var(--pink)">Webpages</span> talking to DataPantry</h3>
       <ul>
         <li onclick="render_vanilla_html_ex()" class="${_current_example == 'vanillajs' ? 'selected-ex' : ''}">Using vanilla web JS</li>
-        <li class="non-active-example">Using Axios (coming soon!)</li>
-        <li class="non-active-example">Using VueJS + Axios (coming soon!)</li>
-        <li class="non-active-example">Using React + Axios (coming soon!)</li>
+        <li class="non-active-example">Using Pantry library (coming soon!)</li>
+        <li class="non-active-example">Using VueJS + the Pantry library (coming soon!)</li>
+        <li class="non-active-example">Using React + the Pantry library (coming soon!)</li>
       </ul>
     </div>
     <div class="rounded-container" style="width:100%">
       <h3 style="margin-bottom:0px;text-align: center;"><span style="color:var(--pink)">Servers</span> talking to DataPantry</h3>
       <ul>
         <li class="non-active-example">Using vanilla NodeJS (coming soon!)</li>
-        <li class="non-active-example">Using ExpressJS (coming soon!)</li>
-        <li class="non-active-example">Using Django (coming soon!)</li>
+        <li class="non-active-example">Using ExpressJS + the Pantry library (coming soon!)</li>
+        <li class="non-active-example">Using Django + the Pantry library (coming soon!)</li>
       </ul>
     </div>`;
 }
@@ -175,7 +175,7 @@ function render_vanilla_html_ex() {
   document.getElementById('example-container').innerHTML = `
     <div class="rounded-container">
       <h4>Use DataPantry with vanilla JS</h4>
-      <p>Vanilla JS is less succinct than using libraries like Axios. I enjoy it because it feels lower-level.</p>
+      <p>Vanilla JS is less succinct than using the Pantry library, but it illustrates how the API can be used.</p>
       <p>
         Here's how you can write a comments section using DataPantry in a single .html file.  
         To make this example, you'd need to create a database titled "blog", with a table titled "comments".

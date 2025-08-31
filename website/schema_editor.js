@@ -53,7 +53,17 @@ function load_schema() {
 
   //  Mouse down event handler
   _event_listeners.mousedown = function(e) {
-    _is_mouse_down = true;
+
+    let isRightMB = false;  //  Are we clicking with the right mouse button?
+    if ("which" in e)  // Gecko (Firefox), WebKit (Safari/Chrome) & Opera
+      isRightMB = e.which == 3; 
+    else if ("button" in e)  // IE, Opera 
+      isRightMB = e.button == 2; 
+
+    if (!isRightMB) {
+      _is_mouse_down = true;
+    }
+    
     _last_x = e.clientX;
     _last_y = e.clientY;
     if (_selected_schema_table > -1 || _selected_fk_output.table_idx > -1) { //  If we've grabbed a line or table...
@@ -353,7 +363,7 @@ function render_schema() {
 
   document.getElementById('schema-display').innerHTML = schema_html;
 
-  //  Not currently used (TODO):
+  //  Zoom is not currently used (TODO):
   document.getElementById('schema-display').style.transform = `scale(${1 + _zoom * 0.01}) translate(${_pan_x}px, ${_pan_y}px)`
   
   //  Render "add a table" and "save" buttons

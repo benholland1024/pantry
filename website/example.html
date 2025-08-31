@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <body>
+
+    <!--  In this section, we'll display existing comments.  -->
+    <h2>Comments</h2>
+    <div id="comment-container"><!-- Insert comments here  --></div>
+    <p>Write a new comment:</p>
+    <br/>
+
+    <!--  In this section, we'll let the user add a new comment.  -->
+    <h2>Add a new comment:</h2>
+    Username: <input id="comment-username" placeholder="mickey_mouse"/><br/>
+    <textarea id="new-comment" placeholder="New comment here"></textarea><br/>
+    <button onclick="submit_comment()">Submit comment</button>
+
+  </body>
+
+  <!--  We'll also insert some vanilla Javascript to run, to talk to DataPantry.  -->
+  <script>
+  const http = new XMLHttpRequest(); //  Needed for making API calls
+  const API_key = "my-api-key";      //  Replace this with your real API key!
+  const username = "test";           //  Replace this with your real username!
+  const db_name = "blog";            //  Replace this with your real database name!
+  const table_name = "comments";     //  Replace this with your real table name!
+
+  //  Run this when the page loads to get all the posted comments.
+  function get_comments() {
+    //  Open an HTTP request for a table.
+    http.open(
+      "GET", 
+      `https://datapantry.org/api/table?` + 
+      `username=${username}&db_name=${db_name}&table_name=${table_name}&api=${API_key}`
+    );
+    //  Send the http request:
+    http.send();
+    //  Now, we wait for a reply from the server!
+    http.onreadystatechange = (e) => {
+      //  If we recieved a reply successfully...
+      if (http.readyState == 4 && http.status == 200) {
+        //  ...the reply will have our table data, including rows, columns, etc!
+        let table = JSON.parse(http.responseText);
+        let comments = table.rows;
+        //  Each row represents a comment. Iterate through them!
+        for (let i = 0; i < comments.length; i++) {
+          //  Insert each comment's username and text on the page.
+          document.getElementById('comment-container').innerHTML += `
+            <div class="comment">
+              <div class="comment-username"><b>Username: </b>${comments[i].username}</div>
+              <div class="comment-text"><b>Comment: </b>${comments[i].text}</div>
+              <br/b>
+            </div>`;
+        }
+      }
+    }
+  }
+  get_comments();  //  Make sure we get the comments when the page first loads. 
+
+  //  One more function.  This one runs everytime the "Submit comment" button is clicked.
+  function submit_comment() {
+    //  We'll make a new http call - this time, a POST call.
+    http.open(
+      "POST", 
+      `https://datapantry.org/api/insert-row?` + 
+      `username=${username}&db_name=${db_name}&table_name=${table_name}&api=${API_key}`
+    );
+    //  We'll send the comment data here.
+    let comment_username = document.getElementById('comment-username').value;
+    let comment_text = document.getElementById('new-comment').value;
+    http.send(JSON.stringify({ username: comment_username, text: comment_text }));
+    //  Now, we wait for confirmation from the server!
+    http.onreadystatechange = (e) => {
+      //  If we recieved a reply successfully...
+      if (http.readyState == 4 && http.status == 200) {
+        ///  ...Make sure there's no error. 
+        let response = JSON.parse(http.responseText);
+        if (response.error) {
+          console.warn(response.error);
+          return;
+        }
+        //  If we're error free, insert our new post.
+        document.getElementById('comment-container').innerHTML += `
+          <div class="comment">
+            <div class="comment-username"><b>Username: </b>${comment_username}</div>
+            <div class="comment-text"><b>Comment: </b>${comment_text}</div>
+            <br/>
+          </div>`;
+        
+      }
+    }
+  }
+  
+  </script>
+</html>
