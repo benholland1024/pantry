@@ -60,7 +60,10 @@ function load_schema() {
     else if ("button" in e)  // IE, Opera 
       isRightMB = e.button == 2; 
 
-    if (!isRightMB) {
+    //  Are we clicking on a text input or dropdown?
+    let isClickOnInput = e.target.id.split('-')[0] == 'i';
+
+    if (!isRightMB && !isClickOnInput) {
       _is_mouse_down = true;
     }
     
