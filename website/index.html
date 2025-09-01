@@ -297,7 +297,7 @@
       const username_input = document.getElementById('username');
       const username_regex = /^[a-z0-9_]*$/;
       username_input.addEventListener("keydown", event => {
-        if (!username_regex.test(event.key) && !_utility_keys.includes(event.keyCode)) {
+        if (!username_regex.test(event.key) && !_utility_keys.includes(event.key)) {
           event.preventDefault();
           document.getElementById('auth-error').innerHTML = "Username can only contain lowercase letters, numbers, and underscores.";
         } else {
