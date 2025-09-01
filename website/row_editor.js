@@ -132,7 +132,7 @@ function render_table() {
 }
 
 //  Returns HTML for an input for an editable cell.
-function get_editable_cell(column, row) {
+function get_editable_cell(column, row, row_idx) {
   let id_attr = '';
   if (to_slug(column.name) == 'id') { 
     id_attr = `readonly value=${_selected_table.metadata.max_id}`; 
@@ -196,8 +196,8 @@ function update_table_col_datatype(column_idx) {
   //  Try to update existing data values.
   let existing_data = false;
   let do_convert = false;
-  if (o_val == 'bool' || o_val == 'fk') {  //  It doesnt make sense to check for existing data here. Just convert.
-    //  Nothing
+  if (o_val == 'bool' || o_val == 'fk') {  //  It doesn't make sense to check for existing data here. Just convert.
+    do_convert = true;
   } else {
     for (let i = 0; i < _selected_table.rows.length; i++) {
       let row = _selected_table.rows[i];
@@ -416,7 +416,7 @@ function delete_row(i) {
 function save_table() {
   let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
   update_row_api_route += `&table_id=${_selected_table.metadata.table_id}`;
-  loading_popup();
+  saving_alert();
   http.open("POST", update_row_api_route);
   http.send(JSON.stringify(_selected_table.metadata));
   http.onreadystatechange = (e) => {

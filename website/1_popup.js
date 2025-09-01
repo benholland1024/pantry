@@ -27,8 +27,17 @@ function loading_popup() {
   `;
 }
 
+function saving_alert() {
+  document.getElementById('popup-alert').style.display = 'block';
+  document.getElementById('popup-alert').innerHTML = `
+    <div id="loading-anim">&#129387;</div> Saving...
+  `;
+  console.log("Called")
+}
+
 //  Create a database called 'untitled_db'.
 function close_popup() {
   document.getElementById('popup').style.display = 'none';
   document.getElementById('popup-screen').style.display = 'none';
+  document.getElementById('popup-alert').style.display = 'none';
 }

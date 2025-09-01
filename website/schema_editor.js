@@ -480,7 +480,7 @@ function table_input_click(table_idx) {
  */
 function update_schema_table(table_idx) {
   let table = _schema_data[table_idx];
-  loading_popup();
+  saving_alert();
   let update_row_api_route = `/api/update-table?username=${_current_user.username}&db_name=${_selected_db.name}`;
   update_row_api_route += `&table_id=${table.table_id}`;
   http.open("POST", update_row_api_route);
@@ -517,7 +517,7 @@ function update_schema_col_datatype(table_idx, column_idx) {
 
 //  Fires when you click the "+ Add a table" button
 function add_table_to_schema(x_pos, y_pos) {
-  loading_popup();
+  saving_alert();
   let new_table = {
     name: 'New Table ' + _schema_data.length,  //  No need to add 1 bc of ghost table
     max_id: 0,
@@ -570,7 +570,7 @@ function confirm_delete_schema_table(index) {
 
 //  Delete a table
 function delete_schema_table(index) {
-  loading_popup();
+  saving_alert();
   let table_name = to_slug(_schema_data[index].name);
   http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${table_name}`);
   http.send();
@@ -609,7 +609,7 @@ function confirm_update_db() {
 //  Update the entire DB, including all the table's metadata if needed 
 function update_db() {
   
-  loading_popup();
+  saving_alert();
   //  Ensure all tables have a slug.
   for (let i = 0; i < _schema_data.length; i++) {
     _schema_data[i].slug = to_slug(_schema_data[i].name)

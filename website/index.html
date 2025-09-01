@@ -26,6 +26,7 @@
     <!--  Popup  -->
     <div id="popup"><!--  Insert popup content here  --></div>
     <div id="popup-screen" onclick="close_popup();"></div><!--  This is the black translucent screen behind the popup.  -->
+    <div id="popup-alert"><!--  Insert content here --></div><!--  This is a less disruptive alert, appearing in the lower corner.  -->
 
     <!---------------->
     <!--  Side bar  -->
@@ -678,9 +679,24 @@
       left: 0px;
       display: none;
     }
+    #popup-alert {
+      position: absolute;
+      padding: 20px;
+      right: 20px;
+      bottom: 20px;
+      background: var(--content-bg-light3);
+      box-shadow: var(--box-shadow);
+      z-index: 5;
+    }
     #loading-anim {
       margin: 50px 0px;
       animation: spin 10s linear 0s infinite;
+    }
+    #popup-alert #loading-anim {
+      margin: 15px;
+      /* width: 5px; */
+      /* display: inline-block; */
+      text-align: center;
     }
     @keyframes spin {
       0% {
