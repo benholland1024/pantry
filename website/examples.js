@@ -179,6 +179,7 @@ function render_vanilla_html_ex() {
       <p>Vanilla JS is less succinct than using the Pantry library, but it illustrates how the API can be used.</p>
       <p>
         Here's how you can write a comments section using DataPantry in a single .html file.  
+        You can see the result of this example <a href="https://datapantry.org/example.html" target="_blank">here</a>.
         To make this example, you'd need to do the following:
         <ol>
           <li>Create a database titled "blog".</li>
