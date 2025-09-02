@@ -61,7 +61,7 @@ function load_schema() {
       isRightMB = e.button == 2; 
 
     //  Are we clicking on a text input or dropdown?
-    let isClickOnInput = e.target.id.split('-')[0] == 'i';
+    let isClickOnInput = ['i', 'col'].includes(e.target.id.split('-')[0]);
 
     if (!isRightMB && !isClickOnInput) {
       _is_mouse_down = true;
@@ -178,7 +178,6 @@ function load_schema() {
   }
   document.addEventListener("wheel", _event_listeners.wheel);
   window.addEventListener('resize', () => {
-    console.log("Woah doggie! Resizing!")
     render_schema();
   });
 }
@@ -245,7 +244,6 @@ function set_schema_pos() {
       if (tables_per_row == 0) { tables_per_row = i; }
       x_pos = default_gap + (i % tables_per_row) * (_table_width + default_gap)
     }
-    console.log(wrap_count);
     let y_pos = default_gap + 200 * wrap_count;
     table.y_pos = y_pos;
     table.x_pos = x_pos;
@@ -509,7 +507,6 @@ function update_schema_col_datatype(table_idx, column_idx) {
   if (new_val.split('-')[0] == 'fk') {
     let fk_input_dest_idx = Number(new_val.split('-')[1]);
     let fk_input_dest_id = _schema_data[fk_input_dest_idx].table_id;
-    console.log(`Updating datatype to fk_input_dest_idx: ${fk_input_dest_idx}, table id" ${fk_input_dest_id}`)
     _schema_data[table_idx].columns[column_idx].fk_input_dest = fk_input_dest_id;
     _schema_data[table_idx].columns[column_idx].datatype = 'fk';
   } else {
