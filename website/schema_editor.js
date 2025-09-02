@@ -571,8 +571,8 @@ function confirm_delete_schema_table(index) {
 //  Delete a table
 function delete_schema_table(index) {
   saving_alert();
-  let table_name = to_slug(_schema_data[index].name);
-  http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_name=${table_name}`);
+  let table_id = _schema_data[index].table_id;
+  http.open("POST", `/api/delete-table?username=${_current_user.username}&db_name=${_selected_db.name}&table_id=${table_id}`);
   http.send();
   http.onreadystatechange = (e) => {
     let response;      
@@ -580,10 +580,22 @@ function delete_schema_table(index) {
       response = JSON.parse(http.responseText);
       if (!response.error) {
         console.log("Deleted a table!");
+        
+        //  Grab the table name & delete it from the schema.
+        let table_name = to_slug(_schema_data[index].name);
         _schema_data.splice(index, 1);
+        //  Now, change any tables that reference this table as an FK. 
+        for (let i = 0; i < _schema_data.length; i++) {
+          let table = _schema_data[i];
+          for (let j = 0; j < table.columns.length; j++) {
+            if (table.columns[j].datatype == 'fk' && table.columns[j].fk_input_dest == table_id) {
+              table.columns[j].datatype = 'string';
+              delete table.columns[j].fk_input_dest;
+            }
+          }
+        }
         requestAnimationFrame(render_schema);
         close_popup();
-
         let table_name_idx = _table_list.indexOf(table_name);
         _table_list.splice(table_name_idx, 1);
         render_side_bar();

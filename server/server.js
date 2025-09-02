@@ -455,6 +455,27 @@ POST_routes['/api/create-table'] = function(data, res) {
 }
 
 /**
+ * This function returns a table given a table_id.
+ * It's used in multiple API routes, including delete-table and update-table.
+ * @param {string} username
+ * @param {string} db_name
+ * @param {number} table_id 
+ */
+function get_table_name_from_table_id(username, db_name, table_id) {
+  //  We now need to find the old table, to make sure the name didn't change.
+  let tables = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
+  for (let i = 0; i < tables.length; i++) {
+    let table_to_read = path.parse(tables[i]).name;
+    let table_data = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_to_read}.json`);
+    table_data = JSON.parse(table_data);
+    if (table_data.table_id == table_id) {
+      return table_to_read;
+    }
+  }
+  return '';
+}
+
+/**
  * Example: /api/update-table?username=my-username&db_name=my-db&table_id=2
  * Update a table's metadata.
  * @param {Object} data 
@@ -473,17 +494,7 @@ POST_routes['/api/update-table'] = function(data, res) {
   let response = { error: false };
 
   //  We now need to find the old table, to make sure the name didn't change.
-  let tables = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
-  let old_name = '';
-  for (let i = 0; i < tables.length; i++) {
-    let table_to_read = path.parse(tables[i]).name;
-    let table_data = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_to_read}.json`);
-    table_data = JSON.parse(table_data);
-    if (table_data.table_id == table_id) {
-      old_name = table_to_read;
-      break;
-    }
-  }
+  let old_name = get_table_name_from_table_id(username, db_name, table_id);
   if (old_name === '') {
     response.error = true;
     response.msg = `No database with id ${table_id} found.`;
@@ -520,26 +531,45 @@ POST_routes['/api/update-table'] = function(data, res) {
 }
 
 /**
- * Example: /api/delete-table?username=my-username&db_name=my-db&table_name=my-table
+ * Example: /api/delete-table?username=my-username&db_name=my-db&table_id=2
  * Deletes a table.
  * @param {Object} data 
  * @param {Object} res Methods for API response.
  */
 POST_routes['/api/delete-table'] = function(data, res) {
   let response = { error: false };
-  let table_name = data._params.table_name;
+  let table_id = data._params.table_id;
   let username = data._params.username;
   let db_name = data._params.db_name;
 
+  let table_name = get_table_name_from_table_id(username, db_name, table_id);
+  //  Delete the table itself
   try {
     fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_name}.json`);
     fs.unlinkSync(`${__dirname}/databases/${username}/${db_name}/rows/${table_name}.json`);
-    console.log("Deleted " + table_name)
+    console.log("Deleted " + table_name);
   } catch (err) {
     response.error = true;
     response.msg = err;
     console.error(err);
   }
+  
+  //  Delete all the FKs that point to that table.
+  let tables = fs.readdirSync(`${__dirname}/databases/${username}/${db_name}/metadata`);
+  for (let i = 0; i < tables.length; i++) {
+    let table_to_read = path.parse(tables[i]).name;
+    let table_data = fs.readFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_to_read}.json`);
+    table_data = JSON.parse(table_data);
+    for (let j = 0; j < table_data.columns.length; j++) {
+      let column = table_data.columns[j];
+      if (column.datatype == 'fk' && column.fk_input_dest == table_id) {
+        table_data.columns[j].datatype = 'string';
+        delete table_data.columns[j].fk_input_dest;
+        fs.writeFileSync(`${__dirname}/databases/${username}/${db_name}/metadata/${table_to_read}.json`, JSON.stringify(table_data, null, '  '));
+      }
+    }
+  }
+
   api_response(res, 200, JSON.stringify(response));
 }
 
