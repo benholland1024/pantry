@@ -401,10 +401,15 @@ function render_action_bar() {
  * Fires when you click the table icon in the action bar. 
  */
 function enter_add_table_mode() {
-  _cursor_mode = 'add-table';
+  _cursor_mode = 'add-table'; 
   render_action_bar();
-  _schema_data.push({ 
-    name: 'New Table ' + (_schema_data.length + 1),
+  //  add ghost table
+  let name_i = 1;
+  while (_table_list.includes(`new-table-${name_i}`)) {
+    name_i++;
+  }
+  _schema_data.push({   
+    name: 'New Table ' + name_i,
     max_id: 0,
     columns: [{ name: 'Id', slug: 'id', unique: true, required: true, datatype: 'number' }],
     x_pos: _last_x,
@@ -518,8 +523,12 @@ function update_schema_col_datatype(table_idx, column_idx) {
 //  Fires when you click the "+ Add a table" button
 function add_table_to_schema(x_pos, y_pos) {
   saving_alert();
+  let name_i = 1;
+  while (_table_list.includes(`new-table-${name_i}`)) {
+    name_i++;
+  }
   let new_table = {
-    name: 'New Table ' + _schema_data.length,  //  No need to add 1 bc of ghost table
+    name: 'New Table ' + name_i,  //  No need to add 1 bc of ghost table
     max_id: 0,
     columns: [{ name: 'Id', slug: 'id', unique: true, required: true, datatype: 'number' }],
     x_pos: x_pos,
@@ -537,7 +546,11 @@ function add_table_to_schema(x_pos, y_pos) {
         new_table.table_id = response.table_id;
         _table_list.push(to_slug(new_table.name));
         _schema_data.splice(-1, 0, new_table);  //  Add to 2nd to last index, skipping the ghost
-        _schema_data[_schema_data.length-1].name = 'New Table ' + _schema_data.length;
+        let name_i = 1;
+        while (_table_list.includes(`new-table-${name_i}`)) {
+          name_i++;
+        }
+        _schema_data[_schema_data.length-1].name = 'New Table ' + name_i;
         close_popup();
         render_side_bar();
         requestAnimationFrame(render_schema);
