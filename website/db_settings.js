@@ -5,6 +5,7 @@
 //  Runs when you open the db-settings page
 function load_db_settings(db_name, event) {
   if (event) {event.stopPropagation(); }           //  Prevent the schema from opening when the gear is clicked
+  _selected_table = {}; 
   _selected_db.name = db_name;
   window.history.pushState({ },"", `/db-settings/${_selected_db.name}`);
   unrender_all();

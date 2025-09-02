@@ -447,6 +447,7 @@
     function load_database(db_name) {
       _selected_db.name = db_name;
       _selected_db.api_key = _db_data[db_name].api_key;
+      _selected_table = {}; 
       Pantry.get_all_tables(_current_user.username, db_name, function(response) {
         if (!response.error) {
           _table_list = response;

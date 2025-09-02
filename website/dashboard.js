@@ -7,6 +7,7 @@ function load_dashboard() {
   if (!_current_user.username) {
     return;
   }
+  _selected_db = { name: '' };
   window.history.pushState({ },"", `/dashboard`);
   unrender_all();
   document.getElementById('dashboard').style.display = 'block';
