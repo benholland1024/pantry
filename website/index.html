@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css">
   </head>
 
-  <body>
+  <body style="background:black">
 
     <!--  Popup  -->
     <div id="popup"><!--  Insert popup content here  --></div>
@@ -230,6 +230,13 @@
 
     //  BOOT
     function boot() {
+
+      //  Get rid of FOUC
+      document.body.style.visibility = 'hidden';
+      window.addEventListener("load", (event) => { 
+        document.body.style.visibility = 'visible';
+      });
+
        
       //  If the user isn't logged in...
       if (_session_id) {
@@ -258,7 +265,10 @@
         toggle_darkmode();
       }
     }
-    boot();
+    //  Self-executing boot func
+    (function() {
+      boot();
+    })()
 
     function routing() {
       load_dashboard();
