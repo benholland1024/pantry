@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css">
   </head>
 
-  <body style="background:black">
+  <body style="background:black; visibility: hidden;">
 
     <!--  Popup  -->
     <div id="popup"><!--  Insert popup content here  --></div>
@@ -232,7 +232,6 @@
     function boot() {
 
       //  Get rid of FOUC
-      document.body.style.visibility = 'hidden';
       window.addEventListener("load", (event) => { 
         document.body.style.visibility = 'visible';
       });
